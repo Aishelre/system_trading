@@ -6,78 +6,145 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>537</width>
-    <height>382</height>
+    <width>676</width>
+    <height>751</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QPushButton" name="btn_log_in">
+   <widget class="QWidget" name="gridLayoutWidget">
     <property name="geometry">
      <rect>
-      <x>30</x>
-      <y>20</y>
-      <width>131</width>
-      <height>41</height>
+      <x>10</x>
+      <y>10</y>
+      <width>301</width>
+      <height>71</height>
      </rect>
     </property>
-    <property name="text">
-     <string>Log in</string>
-    </property>
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="0" column="1">
+      <widget class="QPushButton" name="btn_connected">
+       <property name="text">
+        <string>접속 상태 확인</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QPushButton" name="btn_log_in">
+       <property name="text">
+        <string>Log in</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </widget>
-   <widget class="QPushButton" name="btn_is_connected">
+   <widget class="QWidget" name="gridLayoutWidget_2">
     <property name="geometry">
      <rect>
-      <x>30</x>
-      <y>80</y>
-      <width>131</width>
-      <height>41</height>
+      <x>190</x>
+      <y>100</y>
+      <width>301</width>
+      <height>80</height>
      </rect>
     </property>
-    <property name="text">
-     <string>접속 상태</string>
-    </property>
+    <layout class="QGridLayout" name="gridLayout_2">
+     <item row="1" column="0">
+      <widget class="QPushButton" name="btn_start">
+       <property name="text">
+        <string>실시간 호가 정보</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QPushButton" name="btn_search">
+       <property name="text">
+        <string>주식 기본 정보</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QPushButton" name="btn_stop">
+       <property name="text">
+        <string>      수신 종료      </string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </widget>
-   <widget class="QPushButton" name="btn_search">
+   <widget class="QWidget" name="gridLayoutWidget_3">
     <property name="geometry">
      <rect>
-      <x>180</x>
-      <y>20</y>
-      <width>131</width>
-      <height>41</height>
+      <x>330</x>
+      <y>10</y>
+      <width>160</width>
+      <height>71</height>
      </rect>
     </property>
-    <property name="text">
-     <string>SK하이닉스 기본 정보</string>
-    </property>
+    <layout class="QGridLayout" name="gridLayout_3">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>계좌 번호</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="lb_pswd">
+       <property name="autoFillBackground">
+        <bool>false</bool>
+       </property>
+       <property name="echoMode">
+        <enum>QLineEdit::Password</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>비밀 번호</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QComboBox" name="cb_acc"/>
+     </item>
+    </layout>
    </widget>
-   <widget class="QPushButton" name="btn_real_time">
+   <widget class="QWidget" name="gridLayoutWidget_4">
     <property name="geometry">
      <rect>
-      <x>30</x>
-      <y>140</y>
-      <width>131</width>
-      <height>41</height>
+      <x>10</x>
+      <y>100</y>
+      <width>160</width>
+      <height>81</height>
      </rect>
     </property>
-    <property name="text">
-     <string>실시간 호가 정보</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="_btn_stop">
-    <property name="geometry">
-     <rect>
-      <x>30</x>
-      <y>200</y>
-      <width>131</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>수신 종료</string>
-    </property>
+    <layout class="QGridLayout" name="gridLayout_4">
+     <item row="0" column="1">
+      <widget class="QComboBox" name="box_code"/>
+     </item>
+     <item row="0" column="0" alignment="Qt::AlignHCenter|Qt::AlignTop">
+      <widget class="QLabel" name="label_3">
+       <property name="minimumSize">
+        <size>
+         <width>76</width>
+         <height>20</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>76</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;종목&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -85,13 +152,22 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>537</width>
+     <width>676</width>
      <height>21</height>
     </rect>
    </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <tabstops>
+  <tabstop>btn_log_in</tabstop>
+  <tabstop>btn_connected</tabstop>
+  <tabstop>lb_pswd</tabstop>
+  <tabstop>btn_search</tabstop>
+  <tabstop>btn_start</tabstop>
+  <tabstop>btn_stop</tabstop>
+  <tabstop>box_code</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
