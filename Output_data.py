@@ -27,24 +27,23 @@ def data_processing1(self, cur_data):
 
 
 def output_batch(output_file, data, data_bat, bat_size):
-    data_seq = [58, 52, 46, 40, 34, 28, 22, 16, 10, 4, 1, 7, 13, 19, 25, 31, 37, 43, 49,
-                55]  # 호가 오름차순 +1 : 잔량, +2 : 추가주문량
+    data_seq = [58, 52, 46, 40, 34, 28, 22, 16, 10, 4, 1, 7, 13, 19, 25, 31, 37, 43, 49, 55]
+    # +0 : 호가 오름차순, +1 : 잔량, +2 : 추가주문량
     data_bat.append(data)
 
     try:
         if len(data_bat) >= bat_size:  # bat_size 개 정보가 들어 있으면
-            print("출력")
             with open(output_file, "at") as fp:
                 for i in range(0, bat_size):
-                    fp.write((data_bat[i][0] + ","))
+                    fp.write((str(data_bat[i][0]) + ","))
                     for k in data_seq:
-                        fp.write((data_bat[i][k] + ","))
+                        fp.write((str(data_bat[i][k]) + ","))
                     fp.write("\n,")
                     for k in data_seq:
-                        fp.write((data_bat[i][k + 1] + ","))  # 주문 잔량
+                        fp.write((str(data_bat[i][k + 1]) + ","))  # 주문 잔량
                     fp.write("\n,")
                     for k in data_seq:
-                        fp.write((data_bat[i][k + 2] + ","))  # 추가 주문량
+                        fp.write((str(data_bat[i][k + 2]) + ","))  # 추가 주문량
                     fp.write("\n")
                 fp.close()
             del data_bat[:]
@@ -55,50 +54,52 @@ def output_batch(output_file, data, data_bat, bat_size):
         print("Permissoin Error - {}".format(datetime.now()))
         with open(output_file + "err.csv", "at") as fp:
             for i in range(0, bat_size):
-                fp.write((data_bat[i][0] + ","))
+                fp.write((str(data_bat[i][0]) + ","))
                 for k in data_seq:
-                    fp.write((data_bat[i][k] + ","))
+                    fp.write((str(data_bat[i][k]) + ","))
                 fp.write("\n,")
                 for k in data_seq:
-                    fp.write((data_bat[i][k + 1] + ","))  # 주문 잔량
+                    fp.write((str(data_bat[i][k + 1]) + ","))  # 주문 잔량
                 fp.write("\n,")
                 for k in data_seq:
-                    fp.write((data_bat[i][k + 2] + ","))  # 추가 주문량
+                    fp.write((str(data_bat[i][k + 2]) + ","))  # 추가 주문량
                 fp.write("\n")
             fp.close()
         del data_bat[:]
-
+    print("* 베치 데이터 출력 완료")
 
 def output_result(output_file, data):
-    print("※ 파일 출력 함수")
+    """
+    입력된 데이터를 바로 출력
+    """
     data_seq = [58, 52, 46, 40, 34, 28, 22, 16, 10, 4, 1, 7, 13, 19, 25, 31, 37, 43, 49,
                 55]  # 호가 오름차순 +1 : 잔량, +2 : 추가주문량
     try:
         with open(output_file, "at") as fp:
-            fp.write(data[0] + ",")
+            fp.write(str(data[0]) + ",")
             for i in data_seq:
-                fp.write(data[i] + ",")  # 주문 가격
+                fp.write(str(data[i]) + ",")  # 주문 가격
             fp.write("\n,")
             for i in data_seq:
-                fp.write(data[i + 1] + ",")  # 주문 잔량
+                fp.write(str(data[i + 1]) + ",")  # 주문 잔량
             fp.write("\n,")
             for i in data_seq:
-                fp.write(data[i + 2] + ",")  # 추가 주문량
+                fp.write(str(data[i + 2]) + ",")  # 추가 주문량
             fp.write("\n")
             fp.close()
 
     except PermissionError:
         print("************ PermissionError ************")
         with open(output_file + "_error.csv", "at") as fp:
-            fp.write(data[0] + ",")
+            fp.write(str(data[0]) + ",")
             for i in data_seq:
-                fp.write(data[i] + ",")
+                fp.write(str(data[i]) + ",")
             fp.write("\n,")
             for i in data_seq:
-                fp.write(data[i + 1] + ",")
+                fp.write(str(data[i + 1]) + ",")
             fp.write("\n,")
             for i in data_seq:
-                fp.write(data[i + 2] + ",")
+                fp.write(str(data[i + 2]) + ",")
             fp.write("\n")
             fp.close()
-    print("* 데이터 출력 완료")
+    print("* 실시간 데이터 출력 완료")
