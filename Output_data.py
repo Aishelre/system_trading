@@ -1,31 +1,80 @@
 # 17.07.27 16:00
 
+import collections
 from datetime import datetime
 
+def output_strength(output_file, data, st_bat, bat_size):
+    test = collections.OrderedDict(data)
+    for k in test.keys():
+        print("for")
+        if k == 'time':
+            continue
+        pre_remain = test[k][0] - test[k][1]
+        if pre_remain == 0:
+            test[k] = 0
+            continue
+        else:
+            test[k] = test[k][1] / pre_remain * 100
+    st_bat.append(test)
+    print(len(st_bat))
 
-def data_processing1(self, cur_data):
+    if len(st_bat) >= bat_size:  # bat_size 개 정보가 들어 있으면
+        with open(output_file, "at") as fp:
+            for i in range(0, len(st_bat)):
+                fp.write(str(st_bat[i]['time']) + ",")
+                for key in st_bat[i].keys():
+                    fp.write(str(key) + ",")
+                fp.write("\n,")
+                for st in st_bat.values():
+                    fp.write(str(st) + ",")
+                fp.write("\n")
+            fp.close()
+        print(" ** STRENGTH 출력 완료 ** ")
+        del st_bat[:]
+
+def dict_output_batch(output_file, data, order, data_bat, order_bat, bat_size):
+    d = collections.OrderedDict(data)
+    data_bat.append(d)
+    o = collections.OrderedDict(order)
+    order_bat.append(o)
+    print(order) # TODO 값 확인. data_processing 에서 나온 제대로 된 값이 출력 되는지
+
+    if len(data_bat) >= bat_size:  # bat_size 개 정보가 들어 있으면
+        with open(output_file, "at") as fp:
+            for i in range(0, len(data_bat)):
+                for key in data_bat[i].keys():
+                    fp.write(str(key) + ",")
+                fp.write("\n")
+                for key in data_bat[i].keys():
+                    fp.write(str(data_bat[i][key]) + ",")  # 주문 잔량
+                fp.write("\n,")
+                print(order_bat)
+                for key in order_bat[i].keys():
+                    print("{} : {}".format(key, order_bat[i][key]))
+                    fp.write(str(order_bat[i][key]) + ",")
+                fp.write("\n")
+            fp.close()
+        print(" ** DICT 출력 완료 ** ")
+        del data_bat[:]
+
+def dict_output_result(output_file, dict_data):
     """
-    주문이 들어올 때마다
-    같은 시간의 ...@#$% 좀 이상함
+    모든 호가, 잔여량 출력 
     """
-    # cur_data, pre_data
-    data_seq = [58, 52, 46, 40, 34, 28, 22, 16, 10, 4, 1, 7, 13, 19, 25, 31, 37, 43, 49, 55]
+    with open(output_file, "at") as fp:
+        fp.write(str(dict_data['time']) + ",")
+        for key in dict_data.keys():
+            fp.write(str(key) + ",")  # 주문 가격
+        fp.write("\n")
+        for value in dict_data.values():
+            fp.write(str(value[0]) + ",")
+        fp.write("\n")
+        fp.close()
 
-    if cur_data[0] == self.pre_data[0] and cur_data[1] == self.pre_data[1]:  # 같은 시간, 같은 호가창
-        for i in data_seq:
-            self.pre_data[i + 1] = int(self.pre_data[i + 2])
-            cur_data[i + 2] = int(cur_data[i + 2])
-            cur_data[i + 2] += self.pre_data[i + 2]
-            self.pre_data[i + 1] = str(self.pre_data[i + 2])
-            cur_data[i + 2] = str(cur_data[i + 2])
-        self.output_result("p_output.csv", cur_data)
-    elif cur_data[0] != self.pre_data[0]:
-        self.output_result("p_output.csv", cur_data)
-    else:  # [0]!=[0] (다른 시간), [1]!=[1] (호가창 변경)
-        pass
-    pre_data = cur_data
+    print("* 실시간 데이터 출력 완료")
 
 
+""" ======================================================================================== """
 def output_batch(output_file, data, data_bat, bat_size):
     data_seq = [58, 52, 46, 40, 34, 28, 22, 16, 10, 4, 1, 7, 13, 19, 25, 31, 37, 43, 49, 55]
     # +0 : 호가 오름차순, +1 : 잔량, +2 : 추가주문량
@@ -34,7 +83,7 @@ def output_batch(output_file, data, data_bat, bat_size):
     try:
         if len(data_bat) >= bat_size:  # bat_size 개 정보가 들어 있으면
             with open(output_file, "at") as fp:
-                for i in range(0, bat_size):
+                for i in range(0, len(data_bat)):
                     fp.write((str(data_bat[i][0]) + ","))
                     for k in data_seq:
                         fp.write((str(data_bat[i][k]) + ","))
@@ -53,7 +102,7 @@ def output_batch(output_file, data, data_bat, bat_size):
         #    fp.close()
         print("Permissoin Error - {}".format(datetime.now()))
         with open(output_file + "err.csv", "at") as fp:
-            for i in range(0, bat_size):
+            for i in range(0, len(data_bat)):
                 fp.write((str(data_bat[i][0]) + ","))
                 for k in data_seq:
                     fp.write((str(data_bat[i][k]) + ","))

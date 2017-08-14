@@ -2,8 +2,10 @@
 #2017.07.27 16:00
 
 import math
-from PyQt4.QtCore import *
-from PyQt4.QAxContainer import *
+import collections
+from PyQt5.QtCore import *
+from PyQt5.QAxContainer import *
+from PyQt5.QtWidgets import *
 import Output_data
 
 # TODO : 특정 시간에 주문이 없을 경우에도 파일 출력 가능하게 만들기
@@ -25,26 +27,37 @@ class Singleton:
 
 class My_Kiwoom(Singleton):
     callback = None
-
     def __init__(self):
         self.kiwoom = QAxWidget("KHOPENAPI.KHOpenAPICtrl.1")
-        self.kiwoom.connect(self.kiwoom, SIGNAL("OnReceiveTrData(QString, QString, QString, QString, QString, int, QString, QString, QString)"), self.OnReceiveTrData)
-        self.kiwoom.connect(self.kiwoom, SIGNAL("OnReceiveRealData(QString, QString, QString)"), self.OnReceiveRealData)
-        self.kiwoom.connect(self.kiwoom, SIGNAL("OnEventConnect(int)"), self.OnEventConnect)
+        self.kiwoom.OnEventConnect.connect(self.OnEventConnect)
+        self.kiwoom.OnReceiveTrData.connect(self.OnReceiveTrData)
+        self.kiwoom.OnReceiveRealData.connect(self.OnReceiveRealData)
 
         self.cur_account = str()
         self.passwd = str()
         self.cur_code = str()
 
         self.output_file_name = "output.csv"
-        self.bat_size = 5  # bat_size 초 동안의 데이터가 한번에 저장됨
+        self.bat_size = 3  # bat_size 초 동안의 데이터가 한번에 저장됨
         self.data_bat = []  # t초 데이터가 들어갈 리스트
         self.pre_data = [0 for i in range(65)]  # 1초 단위의 데이터를 저장하기 위해 이전 데이터와의 시간 간격을 체크
 
         self.std_price = 0
         self.opening_price = 0
-        self.quote = []
+        self.quotes = []
 
+        self.dict_data = collections.OrderedDict()
+        self.pre_dict_data = collections.OrderedDict()
+        self.order = collections.OrderedDict()
+        self.order_bat = []
+
+        self.prevent_overlap = 0
+
+        self.st_data = collections.OrderedDict()
+        self.st_bat = []  # 주문의 강도를 파일로 출력
+
+    def event_connect(self):
+        pass
     def set_callback(self, the_callback):
         self.callback = the_callback
 
@@ -93,7 +106,7 @@ class My_Kiwoom(Singleton):
         ret = self.kiwoom.dynamicCall('CommRqData(QString, QString, int, QString)', "기준가_시가", "OPT10001", 0, "0103")
 
     def set_quote(self):
-        self.quote.clear()
+        self.quotes.clear()
         self.std_price = int(self.std_price)
         self.opening_price = abs(int(self.opening_price))
 
@@ -108,12 +121,17 @@ class My_Kiwoom(Singleton):
             upper_limit -= 1
         print("하한가 : {}, 상한가 : {}".format(lower_limit, upper_limit))
 
-        self.quote.append(lower_limit)
-        while upper_limit not in self.quote:
-            lower_limit += i
-            i = self.set_unit(lower_limit)
-            self.quote.append(lower_limit)
-        self.callback.show_quote(self.quote, self.opening_price)
+        q = lower_limit
+        self.dict_data.clear()
+        self.dict_data['time'] = 0
+        while upper_limit not in self.quotes:
+            self.quotes.append(q)  # 매수, 매도 시 선택할 수 있는 호가
+            q += i
+            i = self.set_unit(q)
+            self.dict_data[q] = 0  # 호가 '잔량' 기본 셋팅
+            self.order[q] = 0  # '주문량' 기본 셋팅
+
+        self.callback.show_quote(self.quotes, self.opening_price)
 
     def set_unit(self, num):
         if num < 5000:
@@ -134,44 +152,146 @@ class My_Kiwoom(Singleton):
         # param[0] : 종목코드
         # param[1] : 주식호가잔량
         # param[2] : datas
+
+        #print(self.prevent_overlap)
+        #if self.prevent_overlap == 1:
+        #    return
+        #lse:
+        #    self.prevent_overlap = 1
+
         print("주문 발생")
         print("종목코드 : {}".format(sJongmokCode))
 
+        data_seq = [58, 52, 46, 40, 34, 28, 22, 16, 10, 4, 1, 7, 13, 19, 25, 31, 37, 43, 49, 55]
+
         data = sRealData.split('\t')[:65]
         data = list(map(int, data))
-
-        if self.pre_data[0] == 0:
-            self.pre_data = data
-            return
         self.callback.show_price(abs(int(data[4])))
-        Output_data.output_result("o_output.csv", data)
-        #self.data_processing(data)
-        self.data_processing2(data)
 
-    def data_processing(self, cur_data):
+        self.dict_data['time'] = data[0]
+
+        for k in data_seq:  # 해당 호가에 주문 잔량을 넣어준다.
+            self.dict_data[data[k]] = data[k+1]
+
+        if len(self.pre_dict_data) == 0:  # 초기 실행일 때
+            print("초기 실행")
+            self.pre_dict_data = self.dict_data.copy()  #collections.OrderedDict(self.dict_data)
+            return
+
+
+        #Output_data.output_result("o_output.csv", data)
+        #Output_data.dict_output_result("d_o_output.csv", self.dict_data)
+        self.data_processing4(data)
+
+        #self.prevent_overlap = 0
+
+    def data_processing4(self, data):
         """
-        매 초마다 (현재 물량 - 이전 물량) 으로 1초간 주문량을 구함
-        매 초 처음 틱으로 구하는 것은 아님
+        dict 형으로 사용
         """
         data_seq = [58, 52, 46, 40, 34, 28, 22, 16, 10, 4, 1, 7, 13, 19, 25, 31, 37, 43, 49, 55]
 
-        if cur_data[0] == self.pre_data[0] and cur_data[1] == self.pre_data[1]:  # 같은 시간, 같은 호가 순서
+        if self.dict_data['time'] == self.pre_dict_data['time']:  # 같은 시간
+            print("같은 시간")
             pass
 
-        elif cur_data[0] != self.pre_data[0]:  # 다른 시간
-            for i in data_seq:
-                self.pre_data[i + 1] = int(self.pre_data[i + 1])
-                cur_data[i + 1] = int(cur_data[i + 1])
-                cur_data[i + 2] = int(cur_data[i + 2])
-                cur_data[i + 2] = cur_data[i + 1] - self.pre_data[i + 1]
-                self.pre_data[i + 1] = str(self.pre_data[i + 1])
-                cur_data[i + 1] = str(cur_data[i + 1])
-                cur_data[i + 2] = str(cur_data[i + 2])
-            self.pre_data = cur_data
-            Output_data.output_batch(self.output_file_name, cur_data, self.data_bat, self.bat_size)
-        elif cur_data[0] == self.pre_data[0] and cur_data[1] != self.pre_data[1]:  # 같은 시간, 다른 호가 순서
-            self.pre_data = cur_data
-            Output_data.output_batch(self.output_file_name, cur_data, self.data_bat, self.bat_size)
+        elif self.dict_data['time'] != self.pre_dict_data['time']:  # 다른 시간
+            print("다른 시간")
+
+            cur = str(self.dict_data['time'])
+            pre = str(self.pre_dict_data['time'])
+
+            cur_time = list(map(int, [cur[2:4], cur[4:]]))  # [2:4] - 분, [4:] - 초
+            pre_time = list(map(int, [pre[2:4], pre[4:]]))
+            empty_time = (cur_time[0]*60 + cur_time[1]) - (pre_time[0]*60 + pre_time[1])
+
+            for i in range(1, empty_time):  # 1초 이상 주문이 없었을 때
+                self.pre_dict_data['time'] += 1
+                if self.pre_dict_data['time'] % 100 == 60:
+                    self.pre_dict_data['time'] += 40
+                for k in data_seq:
+                    self.order[data[k]] = 0
+
+                    pass
+                #Output_data.dict_output_batch(self.output_file_name, self.pre_dict_data, self.data_bat, self.bat_size)
+                #Output_data.output_strength("strength.csv", self.dict_data, self.st_bat, self.bat_size)
+                print("빈 시간 : {}".format(self.pre_dict_data['time']))
+
+            for k in data_seq:  # 추가 주문량 계산
+                self.order[data[k]] = self.dict_data[data[k]] - self.pre_dict_data[data[k]]
+                print(self.dict_data[data[k]], self.pre_dict_data[data[k]])
+                print(self.order[data[k]])
+            self.pre_dict_data = self.dict_data.copy()  #collections.OrderedDict(self.dict_data)
+            print("output 진입")
+            Output_data.dict_output_batch(self.output_file_name, self.dict_data, self.order, self.data_bat, self.order_bat, self.bat_size)
+            #Output_data.output_strength("strength.csv", self.dict_data, self.st_bat, self.bat_size)
+        print("data_processing 완료")
+
+
+    def data_processing3(self, cur_data):
+        """
+        for 문을 위한 시간 데이터 따로 생성
+        """
+        # TODO 호가 중간중간 비는거 처리?
+        # TODO 더 편한 관리를 위해 제대로 된 list 나 dict 가 필요할 듯...
+
+        data_seq = [58, 52, 46, 40, 34, 28, 22, 16, 10, 4, 1, 7, 13, 19, 25, 31, 37, 43, 49, 55]
+
+        if cur_data[0] == self.pre_data[0]:  # 같은 시간 주문
+            for k in data_seq:
+                if cur_data[k] != self.pre_data[k]:  # 호가 순서가 하나라도 다르면 출력
+                    cur_data_t = list(cur_data)
+                    self.pre_data = cur_data_t
+                    Output_data.output_batch(self.output_file_name, cur_data_t, self.data_bat, self.bat_size)
+                else:  # 호가 순서가 모두 같으면 패스
+                    pass
+
+        if cur_data[0] != self.pre_data[0]:  # 다른 시간 주문, 같은 호가 순서
+            for k in data_seq:
+                if cur_data[k] != self.pre_data[k]:  # 호가 순서가 하나라도 다르면 패스
+                    break
+            pre_data_t = list(self.pre_data)
+            cur_data_t = list(cur_data)
+
+            cur = str(cur_data_t[0])
+            pre = str(pre_data_t[0])
+
+            cur_time = list(map(int, [cur[2:4], cur[4:]]))
+            pre_time = list(map(int, [pre[2:4], pre[4:]]))
+            empty_time = (cur_time[0]*60 + cur_time[1]) - (pre_time[0]*60 + pre_time[1])
+
+            for i in range(1, empty_time):  # 1초 이상 주문이 없었을 때
+                pre_data_t[0] += 1
+                if pre_data_t[0] % 100 == 60:
+                    pre_data_t[0] += 40
+                for k in data_seq:
+                    pre_data_t[k + 2] = 0
+                # Output_data.output_result("output.csv", pre_data_t)  # 시간 꼬임
+                Output_data.output_result("test.csv", pre_data_t)
+                print("빈 시간 : {}".format(pre_data_t[0]))
+
+            for i in data_seq:  # cur_data 추가 주문량 계산
+                cur_data_t[i + 2] = cur_data_t[i + 1] - self.pre_data[i + 1]
+            self.pre_data = cur_data_t
+            Output_data.output_batch(self.output_file_name, cur_data_t, self.data_bat, self.bat_size)
+
+        if cur_data[0] != self.pre_data[0]:  # 다른 시간, 다른 호가 순서
+            # TODO 2개 이상 호가 차이 나는 경우에 대해서 관리해야함
+            for k in data_seq:
+                if cur_data[k] != self.pre_data[k]:  # 호가 순서가 하나라도 다르면 출력
+                    pre_data_t = list(self.pre_data)
+                    cur_data_t = list(cur_data)
+                    if cur_data[58] - self.pre_data[58] > 0:
+                        for i in range(len(data_seq) - 1):
+                            k = data_seq[i]
+                            cur_data_t[k + 2] = cur_data_t[k + 1] - pre_data_t[data_seq[i + 1] + 1]
+                    elif cur_data[58] - self.pre_data[58] < 0:
+                        for i in range(1, len(data_seq)):
+                            k = data_seq[i]
+                            cur_data_t[k + 2] = cur_data_t[k + 1] - pre_data_t[data_seq[i - 1] + 1]
+                    Output_data.output_batch(self.output_file_name, cur_data_t, self.data_bat, self.bat_size)
+                else:
+                    pass
 
     def data_processing2(self, cur_data):
         """
@@ -199,7 +319,7 @@ class My_Kiwoom(Singleton):
                     pre_data_t[0] += 40
                 for k in data_seq:
                     pre_data_t[k + 2] = 0
-                #Output_data.output_result("output.csv", pre_data_t) # 시간 꼬임
+                # Output_data.output_result("output.csv", pre_data_t)  # 시간 꼬임
                 Output_data.output_result("test.csv", pre_data_t)
                 print("빈 시간 : {}".format(pre_data_t[0]))
 
@@ -212,6 +332,31 @@ class My_Kiwoom(Singleton):
             cur_data_t = list(cur_data)
             self.pre_data = cur_data_t
             Output_data.output_batch(self.output_file_name, cur_data_t, self.data_bat, self.bat_size)
+
+    def data_processing(self, cur_data):
+        """
+        매 초마다 (현재 물량 - 이전 물량) 으로 1초간 주문량을 구함
+        매 초 처음 틱으로 구하는 것은 아님
+        """
+        data_seq = [58, 52, 46, 40, 34, 28, 22, 16, 10, 4, 1, 7, 13, 19, 25, 31, 37, 43, 49, 55]
+
+        if cur_data[0] == self.pre_data[0] and cur_data[1] == self.pre_data[1]:  # 같은 시간, 같은 호가 순서
+            pass
+
+        elif cur_data[0] != self.pre_data[0]:  # 다른 시간
+            for i in data_seq:
+                self.pre_data[i + 1] = int(self.pre_data[i + 1])
+                cur_data[i + 1] = int(cur_data[i + 1])
+                cur_data[i + 2] = int(cur_data[i + 2])
+                cur_data[i + 2] = cur_data[i + 1] - self.pre_data[i + 1]
+                self.pre_data[i + 1] = str(self.pre_data[i + 1])
+                cur_data[i + 1] = str(cur_data[i + 1])
+                cur_data[i + 2] = str(cur_data[i + 2])
+            self.pre_data = cur_data
+            Output_data.output_batch(self.output_file_name, cur_data, self.data_bat, self.bat_size)
+        elif cur_data[0] == self.pre_data[0] and cur_data[1] != self.pre_data[1]:  # 같은 시간, 다른 호가 순서
+            self.pre_data = cur_data
+            Output_data.output_batch(self.output_file_name, cur_data, self.data_bat, self.bat_size)
 
     def OnEventConnect(self, nErrCode):
         if nErrCode == 0:
@@ -261,7 +406,7 @@ class My_Kiwoom(Singleton):
             self.callback.show_log("", t=True)
             for i in range(len(info)):
                 info[i] = info[i].strip()
-                self.callback.show_log(info_name[i]+" : "+info[i], t=False, pre=" ")
+                self.callback.show_log(info_name[i]+" : "+info[i], t=False, pre="  *")
 
             print("{} : {}\n{} : {}\n{} : {}\n{} : {}\n{} : {}\n{} : {}"
                   .format("cnt", cnt, "sScroNo", sScrNo, "sRQName", sRQName, "sTRCode", sTRCode, "sRecordName", sRecordName, "sPreNext", sPreNext))
