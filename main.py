@@ -1,7 +1,9 @@
 
 import sys
-from PyQt4 import uic
-from PyQt4.QtGui import *
+from PyQt5 import uic
+from PyQt5.QtGui import *
+from PyQt5.QAxContainer import *
+from PyQt5.QtWidgets import *
 from datetime import datetime
 import Kiwoom_stock
 
@@ -12,7 +14,7 @@ class My_window(QMainWindow):
         super().__init__()
         self.ui = uic.loadUi('window.ui', self)
         self.setWindowTitle("Stock")
-        self.setGeometry(100, 100, 1000, 800)
+        self.setGeometry(100, 100, 1300, 800)
 
         self.statusBar().showMessage('Not Connected')
 
@@ -33,14 +35,15 @@ class My_window(QMainWindow):
         self.resize_table()
 
         with open("int_code_list.txt", "rt") as fp:  # 저장된 종목을 불러온다.
+        #with open("all_codes.txt", "rt") as fp:  # 저장된 종목을 불러온다.
             codes = fp.read().splitlines()
             for code in codes:
                 self.ui.list_int_code.addItem(code)
 
     def resize_table(self):
-        width = 84
+        width = 76
         self.ui.table.horizontalHeader().resizeSection(0, width)  # 종목코드
-        self.ui.table.horizontalHeader().resizeSection(1, width)  # 종목명
+        self.ui.table.horizontalHeader().resizeSection(1, width+19)  # 종목명
         self.ui.table.horizontalHeader().resizeSection(2, width)  # 평가손익
         self.ui.table.horizontalHeader().resizeSection(3, width)  # 수익률
         self.ui.table.horizontalHeader().resizeSection(4, width)  # 매입가
@@ -69,8 +72,19 @@ class My_window(QMainWindow):
         self.ui.list_log.addItem(pre+nowTime+string)
         self.ui.list_log.scrollToBottom()
 
+    def show_order_log(self, string, t=True, pre=""):
+        nowTime = ""
+        if t == True:
+            nowTime = datetime.now().strftime("%H:%M:%S ")
+        self.ui.list_order_log.addItem(pre+nowTime+string)
+        self.ui.list_order_log.scrollToBottom()
+
+
     def code_selected(self, cur_code):
-        self.show_log("설정된 종목 코드 : {}".format(cur_code))
+        self.show_log("◈{}◈".format(cur_code))
+        print(cur_code)
+
+        cur_code = cur_code.split(' ')[0]
         self.lb_cur_code.setText(cur_code)
         # self.ui.list_int_code.setCurrentItem(cur_code) # not working
         kiwoom.set_cur_code(cur_code)

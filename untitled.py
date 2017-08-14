@@ -1,12 +1,14 @@
 #-*-coding: utf-8 -*-
 #2017.07.27 16:00
 
+from datetime import datetime
 import math
 import collections
 from PyQt5.QtCore import *
 from PyQt5.QAxContainer import *
 from PyQt5.QtWidgets import *
 import Output_data
+
 
 # TODO : 특정 시간에 주문이 없을 경우에도 파일 출력 가능하게 만들기
 # TODO : std_price 를 기본 값으로 설정
@@ -67,7 +69,7 @@ class My_Kiwoom(Singleton):
 
     def btn_search_basic(self):
         if self.kiwoom.dynamicCall('GetConnectState()') == 0:
-            print("Not connected")
+            self.callback.show_log("Not Connected", t=True)
             return
         # Tran 입력 값을 서버통신 전에 입력한다. SetInputValue 를 사용하면 OnReceiveTrData 함수가 실행된다.
         ret = self.kiwoom.dynamicCall('SetInputValue(QString, QString)', "종목코드", self.cur_code)
@@ -76,30 +78,35 @@ class My_Kiwoom(Singleton):
 
     def btn_real_start(self):
         if self.kiwoom.dynamicCall('GetConnectState()') == 0:
-            print("Not connected")
+            self.callback.show_log("Not Connected", t=True)
             return
-        print("※ 실시간 데이터 수신 시작")
+        self.callback.show_log("※ 실시간 데이터 수신 시작")
         ret = self.kiwoom.dynamicCall('SetInputValue(QString, QString)', "종목코드", self.cur_code)
         ret = self.kiwoom.dynamicCall('SetRealReg(QString, QString, QString, QString)', "0102", self.cur_code, "", "0")
         ret = self.kiwoom.dynamicCall('CommRqData(QString, QString, int, QString)', "주식호가요청", "OPT10004", 0, "0102")
 
     def btn_real_stop(self):
-        print("※ 실시간 데이터 수신 종료")
+        if self.kiwoom.dynamicCall('GetConnectState()') == 0:
+            self.callback.show_log("Not Connected", t=True)
+            ret = self.kiwoom.dynamicCall('SetRealRemove("All", "All")')
+            return
+        self.callback.show_log("※ 실시간 데이터 수신 종료")
         ret = self.kiwoom.dynamicCall('SetRealRemove("All", "All")')
 
     def set_acc(self, cur_acc):  # self.cur_account 변수에, 선택한 계좌번호 입력
         self.cur_account = cur_acc
-        print(self.cur_account)
+        self.callback.show_log(self.cur_account+" 선택", t=True)
 
     def set_passwd(self, passwd):
         self.passwd = passwd
-        print(self.passwd)
+        self.callback.show_log("패스워드 입력", t=True)
 
     def set_cur_code(self, cur_code):
-        self.btn_real_stop()
+        #self.btn_real_stop()
+        ret = self.kiwoom.dynamicCall('SetRealRemove("All", "All")')
         self.pre_data = [0 for i in range(65)]
         if self.kiwoom.dynamicCall('GetConnectState()') == 0:
-            print("Not connected")
+            self.callback.show_log("Not Connected", t=True)
             return
         self.cur_code = cur_code
         ret = self.kiwoom.dynamicCall('SetInputValue(QString, QString)', "종목코드", self.cur_code)
@@ -159,8 +166,7 @@ class My_Kiwoom(Singleton):
         #lse:
         #    self.prevent_overlap = 1
 
-        print("주문 발생")
-        print("종목코드 : {}".format(sJongmokCode))
+        print("신호 - 종목코드 : {}".format(sJongmokCode))
 
         data_seq = [58, 52, 46, 40, 34, 28, 22, 16, 10, 4, 1, 7, 13, 19, 25, 31, 37, 43, 49, 55]
 
@@ -169,15 +175,12 @@ class My_Kiwoom(Singleton):
         self.callback.show_price(abs(int(data[4])))
 
         self.dict_data['time'] = data[0]
-
         for k in data_seq:  # 해당 호가에 주문 잔량을 넣어준다.
             self.dict_data[data[k]] = data[k+1]
 
         if len(self.pre_dict_data) == 0:  # 초기 실행일 때
-            print("초기 실행")
             self.pre_dict_data = self.dict_data.copy()  #collections.OrderedDict(self.dict_data)
             return
-
 
         #Output_data.output_result("o_output.csv", data)
         #Output_data.dict_output_result("d_o_output.csv", self.dict_data)
@@ -192,12 +195,9 @@ class My_Kiwoom(Singleton):
         data_seq = [58, 52, 46, 40, 34, 28, 22, 16, 10, 4, 1, 7, 13, 19, 25, 31, 37, 43, 49, 55]
 
         if self.dict_data['time'] == self.pre_dict_data['time']:  # 같은 시간
-            print("같은 시간")
             pass
 
         elif self.dict_data['time'] != self.pre_dict_data['time']:  # 다른 시간
-            print("다른 시간")
-
             cur = str(self.dict_data['time'])
             pre = str(self.pre_dict_data['time'])
 
@@ -225,7 +225,7 @@ class My_Kiwoom(Singleton):
             print("output 진입")
             Output_data.dict_output_batch(self.output_file_name, self.dict_data, self.order, self.data_bat, self.order_bat, self.bat_size)
             #Output_data.output_strength("strength.csv", self.dict_data, self.st_bat, self.bat_size)
-        print("data_processing 완료")
+        print("{} data_processing 완료".format(datetime.now().strftime("%H:%M:%S ")))
 
 
     def data_processing3(self, cur_data):
@@ -368,11 +368,17 @@ class My_Kiwoom(Singleton):
         self.callback.status_changed(nErrCode)  # 상태바 메시지 변경
         self.callback.refresh_account(account, nErrCode)  # combo box 에 계좌 입력
 
+        for acc in account:
+            if '5073' in acc:
+                self.callback.show_log(" **** WARNING **** 실제 투자 접속", t=False)
+            else:
+                self.callback.show_log(" * 모의 투자 * ", t=False)
+
     def OnReceiveRealData(self, sJongmokCode, sRealType, sRealData):
         # sJongmokCode 종목코드
         # sRealType 리얼타입 ex.주식호가요청
         # sRealData 리얼데이터
-        print("※Real Data Event※")
+        print("{} ※Real Data Event※".format(datetime.now().strftime("%H:%M:%S ")))
 
         if sRealType == "주식호가잔량":
             self.my_OnReceiveRealData(sJongmokCode, sRealType, sRealData)
@@ -383,12 +389,20 @@ class My_Kiwoom(Singleton):
         # sTRCode - Tran 명 ex.OPT10001
         # sRecordName - Record 명 ex.
         # sPreNext - 연속 조회 유무 ex.0
+        print("{} ※Tr Data Event※".format(datetime.now().strftime("%H:%M:%S ")))
 
-        print("※Tr Data Event※")
+        if sRQName == "매수":
+
+            pass
+
+        if sRQName == "매도":
+
+            pass
+
         if sRQName == "기준가_시가":
             self.std_price = self.kiwoom.dynamicCall('GetCommData(Qstring, Qstring, int, Qstring)', sTRCode, sRQName, 0, "기준가").strip()
             self.opening_price = self.kiwoom.dynamicCall('GetCommData(Qstring, Qstring, int, Qstring)', sTRCode, sRQName, 0, "시가").strip()
-            self.btn_real_stop()
+            ret = self.kiwoom.dynamicCall('SetRealRemove("All", "All")')
             self.set_quote()
 
         if sRQName == "주식기본정보":
@@ -406,7 +420,22 @@ class My_Kiwoom(Singleton):
             self.callback.show_log("", t=True)
             for i in range(len(info)):
                 info[i] = info[i].strip()
-                self.callback.show_log(info_name[i]+" : "+info[i], t=False, pre="  *")
+                self.callback.show_log(info_name[i]+" : "+info[i], t=False, pre="  * ")
+            #print("{} : {}\n{} : {}\n{} : {}\n{} : {}\n{} : {}\n{} : {}"
+            #      .format("cnt", cnt, "sScroNo", sScrNo, "sRQName", sRQName, "sTRCode", sTRCode, "sRecordName", sRecordName, "sPreNext", sPreNext))
 
-            print("{} : {}\n{} : {}\n{} : {}\n{} : {}\n{} : {}\n{} : {}"
-                  .format("cnt", cnt, "sScroNo", sScrNo, "sRQName", sRQName, "sTRCode", sTRCode, "sRecordName", sRecordName, "sPreNext", sPreNext))
+    def show_order_log(self, signal_, code_, name_, price_, vol_, total_):
+        signal = signal_
+        code = code_
+        name = name_
+        price = price_
+        vol = vol_
+        total = price * vol
+
+        self.callback.show_order_log("", t=True)
+        self.callback.show_order_log("========< " + signal + " >========", t=False, pre="  * ")
+        self.callback.show_order_log(code + " " + name, t=False, pre="  * ")
+        self.callback.show_order_log(str(price) + "] 원 x [" + str(vol) + "] 개 = [" + str(total) + "] 원", t=False, pre="  * [")
+
+    def call(self):
+        self.kiwoom.dynamicCall("SendOrder(QString, QString, Qstring, int, QString, int, int, QString, QString), ")
