@@ -14,7 +14,6 @@ class My_window(QMainWindow):
         super().__init__()
         self.ui = uic.loadUi('window.ui', self)
         self.setWindowTitle("Stock")
-        self.setGeometry(100, 100, 1300, 800)
 
         self.statusBar().showMessage('Not Connected')
 
@@ -23,14 +22,17 @@ class My_window(QMainWindow):
         self.ui.btn_start.clicked.connect(lambda : kiwoom.btn_real_start())
         self.ui.btn_stop.clicked.connect(lambda : kiwoom.btn_real_stop())
 
+        self.ui.btn_call_.clicked.connect(lambda: kiwoom.btn_call(int(self.cb_call_price.currentText()), self.sb_call_total.value()))
+        self.ui.btn_put_.clicked.connect(lambda: kiwoom.btn_put(int(self.cb_put_price.currentText()), self.sb_call_total.value()))
+
         self.ui.cb_acc.currentIndexChanged.connect(lambda : kiwoom.set_acc(self.cb_acc.currentText()))
         self.ui.list_int_code.itemClicked.connect(lambda : self.code_selected(self.list_int_code.currentItem().text()))
         self.ui.lb_cur_code.returnPressed.connect(lambda : self.code_selected(self.lb_cur_code.text()))
         self.ui.lb_passwd.returnPressed.connect(lambda : kiwoom.set_passwd(self.lb_passwd.text()))
 
-        self.order_max = 1000000  # 한 번에 주문 할 수 있는 최대 한도 설정
-        self.ui.sb_call_vol.setMaximum(self.order_max)
-        self.ui.sb_put_vol.setMaximum(self.order_max)
+        self.order_max = 500000  # 한 번에 주문 할 수 있는 최대 한도 설정
+        self.ui.sb_call_total.setMaximum(self.order_max)
+        self.ui.sb_put_total.setMaximum(self.order_max)
 
         self.resize_table()
 
@@ -79,14 +81,10 @@ class My_window(QMainWindow):
         self.ui.list_order_log.addItem(pre+nowTime+string)
         self.ui.list_order_log.scrollToBottom()
 
-
     def code_selected(self, cur_code):
         self.show_log("◈{}◈".format(cur_code))
-        print(cur_code)
-
         cur_code = cur_code.split(' ')[0]
         self.lb_cur_code.setText(cur_code)
-        # self.ui.list_int_code.setCurrentItem(cur_code) # not working
         kiwoom.set_cur_code(cur_code)
 
     def show_price(self, price):
