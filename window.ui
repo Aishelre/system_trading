@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>1188</width>
-    <height>813</height>
+    <height>731</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -181,6 +181,11 @@
      <property name="editable">
       <bool>true</bool>
      </property>
+     <item>
+      <property name="text">
+       <string>0</string>
+      </property>
+     </item>
     </widget>
    </widget>
    <widget class="QGroupBox" name="groupBox_2">
@@ -288,6 +293,11 @@
      <property name="editable">
       <bool>true</bool>
      </property>
+     <item>
+      <property name="text">
+       <string>0</string>
+      </property>
+     </item>
     </widget>
     <widget class="QCheckBox" name="cb_put_all">
      <property name="geometry">
@@ -536,6 +546,11 @@
       <string>1</string>
      </property>
     </row>
+    <row>
+     <property name="text">
+      <string>2</string>
+     </property>
+    </row>
     <column>
      <property name="text">
       <string>종목코드</string>
@@ -591,6 +606,36 @@
       <string>가능수량</string>
      </property>
     </column>
+    <item row="1" column="0">
+     <property name="text">
+      <string/>
+     </property>
+    </item>
+    <item row="1" column="1">
+     <property name="text">
+      <string>괜히</string>
+     </property>
+    </item>
+    <item row="1" column="2">
+     <property name="text">
+      <string>이렇게</string>
+     </property>
+    </item>
+    <item row="1" column="3">
+     <property name="text">
+      <string>무겁게</string>
+     </property>
+    </item>
+    <item row="1" column="4">
+     <property name="text">
+      <string>만들어야</string>
+     </property>
+    </item>
+    <item row="1" column="5">
+     <property name="text">
+      <string>할까?</string>
+     </property>
+    </item>
    </widget>
    <widget class="QRadioButton" name="radioButton">
     <property name="geometry">
@@ -643,6 +688,19 @@
       </font>
      </property>
     </item>
+   </widget>
+   <widget class="QPushButton" name="btn_test_">
+    <property name="geometry">
+     <rect>
+      <x>220</x>
+      <y>370</y>
+      <width>101</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>계좌조회 test</string>
+    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

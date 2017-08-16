@@ -10,7 +10,6 @@ import Kiwoom_stock
 
 class My_window(QMainWindow):
     def __init__(self):
-
         super().__init__()
         self.ui = uic.loadUi('window.ui', self)
         self.setWindowTitle("Stock")
@@ -21,6 +20,7 @@ class My_window(QMainWindow):
         self.ui.btn_basic.clicked.connect(lambda : kiwoom.btn_search_basic())
         self.ui.btn_start.clicked.connect(lambda : kiwoom.btn_real_start())
         self.ui.btn_stop.clicked.connect(lambda : kiwoom.btn_real_stop())
+        self.ui.btn_test_.clicked.connect(lambda : kiwoom.btn_test())
 
         self.ui.btn_call_.clicked.connect(lambda: kiwoom.btn_call(int(self.cb_call_price.currentText()), self.sb_call_total.value()))
         self.ui.btn_put_.clicked.connect(lambda: kiwoom.btn_put(int(self.cb_put_price.currentText()), self.sb_call_total.value()))

@@ -3,32 +3,31 @@
 import collections
 from datetime import datetime
 
-def output_strength(output_file, data, st_bat, bat_size):
+def output_strength(output_file, data, st_bat, bat_size, order):
     test = collections.OrderedDict(data)
+
     for k in test.keys():
-        print("for")
         if k == 'time':
             continue
-        pre_remain = test[k][0] - test[k][1]
-        if pre_remain == 0:
+        pre_remain = test[k] - order[k]
+        if pre_remain == 0:  # 이전 잔여량이 0일 때
+            test[k] = order[k]
+        elif order[k] == 0:  # 변화 X
             test[k] = 0
-            continue
         else:
-            test[k] = test[k][1] / pre_remain * 100
+            test[k] = test[k] / pre_remain * 10
     st_bat.append(test)
-    print(len(st_bat))
 
     if len(st_bat) >= bat_size:  # bat_size 개 정보가 들어 있으면
-        with open(output_file, "at") as fp:
+        with open(output_file, "at") as ffp:
             for i in range(0, len(st_bat)):
-                fp.write(str(st_bat[i]['time']) + ",")
                 for key in st_bat[i].keys():
-                    fp.write(str(key) + ",")
-                fp.write("\n,")
-                for st in st_bat.values():
-                    fp.write(str(st) + ",")
-                fp.write("\n")
-            fp.close()
+                    ffp.write(str(key) + ",")
+                ffp.write("\n")
+                for st in st_bat[i].values():
+                    ffp.write(str(st) + ",")
+                ffp.write("\n")
+            ffp.close()
         print(" ** STRENGTH 출력 완료 ** ")
         del st_bat[:]
 
@@ -37,25 +36,23 @@ def dict_output_batch(output_file, data, order, data_bat, order_bat, bat_size):
     data_bat.append(d)
     o = collections.OrderedDict(order)
     order_bat.append(o)
-    print(order) # TODO 값 확인. data_processing 에서 나온 제대로 된 값이 출력 되는지
 
     if len(data_bat) >= bat_size:  # bat_size 개 정보가 들어 있으면
         with open(output_file, "at") as fp:
             for i in range(0, len(data_bat)):
                 for key in data_bat[i].keys():
-                    fp.write(str(key) + ",")
+                    fp.write(str(key) + ",")  # 호가
                 fp.write("\n")
                 for key in data_bat[i].keys():
                     fp.write(str(data_bat[i][key]) + ",")  # 주문 잔량
                 fp.write("\n,")
-                print(order_bat)
                 for key in order_bat[i].keys():
-                    print("{} : {}".format(key, order_bat[i][key]))
-                    fp.write(str(order_bat[i][key]) + ",")
+                    fp.write(str(order_bat[i][key]) + ",")  # 추가 주문량
                 fp.write("\n")
             fp.close()
         print(" ** DICT 출력 완료 ** ")
         del data_bat[:]
+        del order_bat[:]
 
 def dict_output_result(output_file, dict_data):
     """
