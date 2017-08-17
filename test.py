@@ -1,37 +1,54 @@
+from math import *
 
-"""
-저장 데이터의 시간적 연속성 검정
+file = "output.csv"
+result = "result.csv"
 
-"""
-def testing(filename):
-    print("{} 검정".format(filename))
-    with open(filename, "rt") as fp:
-        time = 0
-        t = 0
-        for line in fp:
-            time = (line.split(","))[0]
-            if t == 0:
-                t = int(time)+1
-                continue
-            if time == "":
-                continue
+strength = []
 
-            if t % 100 == 60:
-                t += 40
+def processing(data, order):
+    pre_remain = data - order
+    if pre_remain == 0 and order == 0:
+        st = 0
+    elif pre_remain == 0 and order != 0:
+        st = 1
+    elif pre_remain != 0 and order == 0:
+        st = 1
+    else:
+        #st = 1 + order / pre_remain * 1000
+        st = e ** (1)
+    return str(st)
 
-            if t > int(time):
-                print(time)
-                continue
-            elif t < int(time):
-                print(t)
-                while t != int(time):
-                    t += 1
-                    if t < int(time):
-                        print(t)
+with open(file, 'rt') as ori:
+    with open(result, 'at') as re:
+        ori_line = ori.readlines()
+        length = len(ori_line)
+        print(length)  # 19872
 
-            t += 1
+        for i in range(int(length/300)):
+            print(i)
+            quotes = ori_line[3*i].split(',')
+            datas = ori_line[3 * i + 1].split(',')
+            mores = ori_line[3*i + 2].split(',')
+
+            for k in range(len(quotes)):
+                if quotes[k] == 'time' or quotes[k] == 'now':
+                    continue
+                if quotes[k] == '\n' or datas[k] == '\n':
+                    continue
+                strength.append(processing(int(datas[k]), int(mores[k])))
+
+            for q in quotes:
+                re.write(str(q) + ",")
+            re.write("\n,")
+            for st in strength:
+                re.write(str(st) + ",")
+            re.write("\n,")
 
 
-if __name__ == "__main__":
-    testing("output.csv")
-    #testing("test.csv")
+
+            pass
+
+
+
+
+        pass

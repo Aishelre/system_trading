@@ -7,7 +7,6 @@ from PyQt5.QtWidgets import *
 from datetime import datetime
 import Kiwoom_stock
 
-
 class My_window(QMainWindow):
     def __init__(self):
         super().__init__()

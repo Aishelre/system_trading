@@ -4,19 +4,22 @@ import collections
 from datetime import datetime
 
 def output_strength(output_file, data, st_bat, bat_size, order):
-    test = collections.OrderedDict(data)
-
-    for k in test.keys():
-        if k == 'time':
+    strength = collections.OrderedDict(data)
+    for k in strength.keys():
+        if k == 'time' or k == 'now':
+            print(k)
             continue
-        pre_remain = test[k] - order[k]
-        if pre_remain == 0:  # 이전 잔여량이 0일 때
-            test[k] = order[k]
-        elif order[k] == 0:  # 변화 X
-            test[k] = 0
+        pre_remain = strength[k] - order[k]
+        if pre_remain == 0 and order[k] == 0:
+            strength[k] = 0
+        elif pre_remain == 0 and order[k] != 0:
+            strength[k] = 1
+        elif pre_remain != 0 and order[k] == 0:
+            strength[k] = 1
         else:
-            test[k] = test[k] / pre_remain * 10
-    st_bat.append(test)
+            strength[k] = 1 + order[k] / pre_remain * 1000
+            # 값이 0 이상일 때 +1, 음수일 땐 그냥 사용?
+    st_bat.append(strength)
 
     if len(st_bat) >= bat_size:  # bat_size 개 정보가 들어 있으면
         with open(output_file, "at") as ffp:
@@ -35,6 +38,7 @@ def dict_output_batch(output_file, data, order, data_bat, order_bat, bat_size):
     d = collections.OrderedDict(data)
     data_bat.append(d)
     o = collections.OrderedDict(order)
+    order.clear()
     order_bat.append(o)
 
     if len(data_bat) >= bat_size:  # bat_size 개 정보가 들어 있으면
@@ -44,8 +48,8 @@ def dict_output_batch(output_file, data, order, data_bat, order_bat, bat_size):
                     fp.write(str(key) + ",")  # 호가
                 fp.write("\n")
                 for key in data_bat[i].keys():
-                    fp.write(str(data_bat[i][key]) + ",")  # 주문 잔량
-                fp.write("\n,")
+                    fp.write(str(data_bat[i][key]) + ",")  # 시간, 현재가, 주문 잔량
+                fp.write("\n,,")
                 for key in order_bat[i].keys():
                     fp.write(str(order_bat[i][key]) + ",")  # 추가 주문량
                 fp.write("\n")
@@ -53,23 +57,6 @@ def dict_output_batch(output_file, data, order, data_bat, order_bat, bat_size):
         print(" ** DICT 출력 완료 ** ")
         del data_bat[:]
         del order_bat[:]
-
-def dict_output_result(output_file, dict_data):
-    """
-    모든 호가, 잔여량 출력 
-    """
-    with open(output_file, "at") as fp:
-        fp.write(str(dict_data['time']) + ",")
-        for key in dict_data.keys():
-            fp.write(str(key) + ",")  # 주문 가격
-        fp.write("\n")
-        for value in dict_data.values():
-            fp.write(str(value[0]) + ",")
-        fp.write("\n")
-        fp.close()
-
-    print("* 실시간 데이터 출력 완료")
-
 
 """ ======================================================================================== """
 def output_batch(output_file, data, data_bat, bat_size):
