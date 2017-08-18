@@ -1,5 +1,4 @@
 #-*-coding: utf-8 -*-
-#2017.08.15 12:00
 
 from datetime import datetime
 import math
@@ -9,6 +8,7 @@ from PyQt5.QAxContainer import *
 from PyQt5.QtWidgets import *
 import Output_data
 
+from sys import getsizeof
 
 class Singleton:
     __instance = None
@@ -37,9 +37,11 @@ class My_Kiwoom(Singleton):
         self.passwd = str()
         self.cur_code = str()
 
-        self.output_file_name = "output.csv"
+        self.output_file_name = str()
+        self.st_file_name = str()
         self.bat_size = 3  # bat_size 초 동안의 데이터가 한번에 저장됨
 
+        self.now = 0
         self.std_price = 0
         self.opening_price = 0
         self.quotes = []
@@ -64,19 +66,14 @@ class My_Kiwoom(Singleton):
 
         self.kiwoom.dynamicCall("CommRqData(QString, QString, QString, QString)", "계좌조회", "OPW00004", "0", "0001")
 
-    def printa(self):
-        print("predictdata : {}".format(self.pre_dict_data))
-        print("data_bat : {}".format(self.data_bat))
-        print("order_bat : {}".format(self.order_bat))
-
     def reset_datas(self):
         del self.st_bat[:]
         del self.data_bat[:]
         del self.order_bat[:]
         self.pre_dict_data = collections.OrderedDict()
         self.quotes.clear()
-
-        self.printa()
+        self.dict_data.clear()
+        self.order.clear()
 
     def set_callback(self, the_callback):
         self.callback = the_callback
@@ -166,14 +163,14 @@ class My_Kiwoom(Singleton):
         self.callback.show_log("패스워드 입력", t=True)
 
     def set_cur_code(self, cur_code):
-        self.printa()
         self.reset_datas()
 
         self.kiwoom.dynamicCall('SetRealRemove("All", "All")')
         if self.status_check() == 0:
             return
         self.cur_code = cur_code
-        self.output_file_name = self.cur_code + " - output.csv"
+        self.output_file_name = "{}{}{}".format(datetime.now().strftime("%m.%d "), self.cur_code, " - output.csv")
+        self.st_file_name = "{}{}{}".format(datetime.now().strftime("%m.%d "), self.cur_code, " - strength.csv")
         self.kiwoom.dynamicCall('SetInputValue(QString, QString)', "종목코드", self.cur_code)
         self.kiwoom.dynamicCall('CommRqData(QString, QString, int, QString)', "기준가_시가", "OPT10001", 0, "0103")
 
@@ -194,7 +191,9 @@ class My_Kiwoom(Singleton):
 
         q = lower_limit
         self.dict_data.clear()
+        #self.order.clear()
         self.dict_data['time'] = 0
+        self.dict_data['now'] = 0
         while upper_limit not in self.quotes:
             self.dict_data[q] = 0  # 호가 '잔량' 기본 셋팅
             self.order[q] = 0  # '주문량' 기본 셋팅
@@ -227,23 +226,26 @@ class My_Kiwoom(Singleton):
         #    self.prevent_overlap = 1
 
         print("신호 - 종목코드 : {}".format(sJongmokCode))
-
+        print("{}, {}, {}, {}, {}".format(getsizeof(self.dict_data), getsizeof(self.pre_dict_data), getsizeof(self.data_bat), getsizeof(self.order), getsizeof(self.order_bat)))
         data_seq = [58, 52, 46, 40, 34, 28, 22, 16, 10, 4, 1, 7, 13, 19, 25, 31, 37, 43, 49, 55]
 
         data = sRealData.split('\t')[:65]
         data = list(map(int, data))
+        data = list(map(abs, data))
         self.callback.show_price(abs(int(data[4])))
 
         self.dict_data['time'] = data[0]
+        self.dict_data['now'] = data[4]  # 매수 1
+
         for k in data_seq:  # 해당 호가에 주문 잔량을 넣어준다.
             self.dict_data[data[k]] = data[k+1]
+            #print(data[k], data[k+1])
 
         if len(self.pre_dict_data) == 0:  # 초기 실행일 때
             self.pre_dict_data = self.dict_data.copy()  #collections.OrderedDict(self.dict_data)
             return
 
         #Output_data.output_result("o_output.csv", data)
-        #Output_data.dict_output_result("d_o_output.csv", self.dict_data)
         self.data_processing(data)
 
         #self.prevent_overlap = 0
@@ -272,16 +274,16 @@ class My_Kiwoom(Singleton):
                 for k in data_seq:
                     self.order[data[k]] = 0
                 Output_data.dict_output_batch(self.output_file_name, self.pre_dict_data, self.order, self.data_bat, self.order_bat, self.bat_size)
-                #Output_data.output_strength("strength.csv", self.dict_data, self.st_bat, self.bat_size)
+                Output_data.output_strength(self.st_file_name, self.dict_data, self.st_bat, self.bat_size, self.order)
                 print("빈 시간 : {}".format(self.pre_dict_data['time']))
 
             for k in data_seq:  # 추가 주문량 계산
                 self.order[data[k]] = self.dict_data[data[k]] - self.pre_dict_data[data[k]]
                 #print("{} - {} = {}".format(self.dict_data[data[k]], self.pre_dict_data[data[k]], self.order[data[k]]))
             self.pre_dict_data = self.dict_data.copy()
-            print("output 진입")
             Output_data.dict_output_batch(self.output_file_name, self.dict_data, self.order, self.data_bat, self.order_bat, self.bat_size)
-            #Output_data.output_strength("strength.csv", self.dict_data, self.st_bat, self.bat_size, self.order)
+            Output_data.output_strength(self.st_file_name, self.dict_data, self.st_bat, self.bat_size, self.order)
+            self.order.clear()
         print("{} data_processing 완료".format(datetime.now().strftime("%H:%M:%S ")))
 
     def OnEventConnect(self, nErrCode):
@@ -304,7 +306,7 @@ class My_Kiwoom(Singleton):
         # sJongmokCode 종목코드
         # sRealType 리얼타입 ex.'주식호가요청'
         # sRealData 리얼데이터
-        print("{} ※Real Data Event※".format(datetime.now().strftime("%H:%M:%S ")))
+        # print("{} ※Real Data Event※".format(datetime.now().strftime("%H:%M:%S ")))
 
         if sRealType == "주식호가잔량":
             self.my_OnReceiveRealData(sJongmokCode, sRealType, sRealData)
@@ -316,27 +318,47 @@ class My_Kiwoom(Singleton):
         # sRecordName - Record 명 ex.
         # sPreNext - 연속 조회 유무 ex.0
         print("{} ※Tr Data Event※".format(datetime.now().strftime("%H:%M:%S ")))
+        if sRQName == "현재가":
+            self.now = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "현재가")
 
         if sRQName == "계좌조회":
             print("TR 계좌조회")
             list_ = []
-            t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "총매입금액")
-            t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "예수금")
             t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "종목코드")
+            print(t)
+            list_.append(t)
             t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "종목명")
+            list_.append(t)
             t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "보유수량")
+            list_.append(t)
+            t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "총매입금액")
+            list_.append(t)
+            t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "예수금")
+            list_.append(t)
             t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "평균단가")
+            list_.append(t)
             t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "현재가")
+            list_.append(t)
             t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "평가금액")
+            list_.append(t)
             t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "손익금액")  # 수수료 포함 안된 금액
+            list_.append(t)
             t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "손익율")
+            list_.append(t)
             t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "매입금액")
+            list_.append(t)
             t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "결제잔고")
+            list_.append(t)
             t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "전일매수수량")
+            list_.append(t)
             t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "금일매수수량")
+            list_.append(t)
             t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "전일매도수량")
+            list_.append(t)
             t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "금일매도수량")
-
+            list_.append(t)
+            for i in range(len(list_)):
+                print(list_[i])
         if sRQName == "매수":
             print("TR - 매수")
             print(sTRCode)
