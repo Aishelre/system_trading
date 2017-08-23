@@ -9,9 +9,9 @@ def testing(filename):
         t = 0
         for line in fp:
             time = (line.split(","))[0]
-            if time == 'time':
+            if time == 'time' or time == 'now':
                 continue
-            if time == "":
+            if time == "" or time == '\n':
                 continue
 
             if t == 0:
@@ -33,13 +33,13 @@ def testing(filename):
                     if t < int(time):
                         print(" ** ", t)
 
-            print(time, t)
+            #print(time, t)
             t += 1
 
 
 if __name__ == "__main__":
-    testing("output.csv")
-    #testing("test.csv")
+    #testing("output.csv")
+    testing("test.csv")
 
 
 """

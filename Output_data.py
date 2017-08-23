@@ -38,8 +38,10 @@ def dict_output_batch(output_file, data, order, data_bat, order_bat, bat_size):
     d = collections.OrderedDict(data)
     data_bat.append(d)
     o = collections.OrderedDict(order)
-    order.clear()
     order_bat.append(o)
+
+    for i in order:
+        order[i] = 0
 
     if len(data_bat) >= bat_size:  # bat_size 개 정보가 들어 있으면
         with open(output_file, "at") as fp:
