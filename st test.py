@@ -1,7 +1,7 @@
 from math import *
 from datetime import datetime
 
-cord = "0"
+cord = "047810"
 
 today = datetime.now().strftime("%m.%d ")
 file = today + cord + " - output.csv"
