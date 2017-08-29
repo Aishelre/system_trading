@@ -8,7 +8,6 @@ from PyQt5.QAxContainer import *
 from PyQt5.QtWidgets import *
 import Output_data
 
-from sys import getsizeof
 
 class Singleton:
     __instance = None
@@ -72,6 +71,7 @@ class My_Kiwoom(Singleton):
         del self.order_bat[:]
         self.pre_dict_data = collections.OrderedDict()
         self.quotes.clear()
+
         self.dict_data.clear()
         self.order.clear()
 
@@ -191,7 +191,7 @@ class My_Kiwoom(Singleton):
 
         q = lower_limit
         self.dict_data.clear()
-        #self.order.clear()
+        self.order.clear()
         self.dict_data['time'] = 0
         self.dict_data['now'] = 0
         while upper_limit not in self.quotes:
@@ -226,7 +226,6 @@ class My_Kiwoom(Singleton):
         #    self.prevent_overlap = 1
 
         print("신호 - 종목코드 : {}".format(sJongmokCode))
-        print("{}, {}, {}, {}, {}".format(getsizeof(self.dict_data), getsizeof(self.pre_dict_data), getsizeof(self.data_bat), getsizeof(self.order), getsizeof(self.order_bat)))
         data_seq = [58, 52, 46, 40, 34, 28, 22, 16, 10, 4, 1, 7, 13, 19, 25, 31, 37, 43, 49, 55]
 
         data = sRealData.split('\t')[:65]
@@ -274,7 +273,7 @@ class My_Kiwoom(Singleton):
                 for k in data_seq:
                     self.order[data[k]] = 0
                 Output_data.dict_output_batch(self.output_file_name, self.pre_dict_data, self.order, self.data_bat, self.order_bat, self.bat_size)
-                Output_data.output_strength(self.st_file_name, self.dict_data, self.st_bat, self.bat_size, self.order)
+                #Output_data.output_strength(self.st_file_name, self.dict_data, self.st_bat, self.bat_size, self.order)
                 print("빈 시간 : {}".format(self.pre_dict_data['time']))
 
             for k in data_seq:  # 추가 주문량 계산
@@ -282,8 +281,9 @@ class My_Kiwoom(Singleton):
                 #print("{} - {} = {}".format(self.dict_data[data[k]], self.pre_dict_data[data[k]], self.order[data[k]]))
             self.pre_dict_data = self.dict_data.copy()
             Output_data.dict_output_batch(self.output_file_name, self.dict_data, self.order, self.data_bat, self.order_bat, self.bat_size)
-            Output_data.output_strength(self.st_file_name, self.dict_data, self.st_bat, self.bat_size, self.order)
-            self.order.clear()
+            #Output_data.output_strength(self.st_file_name, self.dict_data, self.st_bat, self.bat_size, self.order)
+            #self.order.clear()
+
         print("{} data_processing 완료".format(datetime.now().strftime("%H:%M:%S ")))
 
     def OnEventConnect(self, nErrCode):
