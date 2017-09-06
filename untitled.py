@@ -262,14 +262,21 @@ class My_Kiwoom(Singleton):
             cur = str(self.dict_data['time'])
             pre = str(self.pre_dict_data['time'])
 
-            cur_time = list(map(int, [cur[2:4], cur[4:]]))  # [2:4] - 분, [4:] - 초
-            pre_time = list(map(int, [pre[2:4], pre[4:]]))
-            empty_time = (cur_time[0]*60 + cur_time[1]) - (pre_time[0]*60 + pre_time[1])
+            #cur_time = list(map(int, [cur[2:4], cur[4:]]))  # [2:4] - 분, [4:] - 초 #TODO 9시 데이터는 9mmss라서 문제 발생 -1 -2 -3 이용
+            #pre_time = list(map(int, [pre[2:4], pre[4:]]))
+            # empty_time = (cur_time[0]*60 + cur_time[1]) - (pre_time[0]*60 + pre_time[1])
+
+            cur_time = list(map(int, [cur[:-4], cur[-4:-2], cur[-2:]])) # [0:-4] - 시. [-4:-2] - 분, [-2:] - 초
+            pre_time = list(map(int, [pre[:-4], pre[-4:-2], pre[-2:]]))
+            empty_time = (cur_time[0] - pre_time[0]) * 3600 + (cur_time[1] - pre_time[1]) * 60 + (cur_time[2] - pre_time[2]) # 1시간 이상 비는 경우는 고려 안함.
 
             for i in range(1, empty_time):  # 1초 이상 주문이 없었을 때
                 self.pre_dict_data['time'] += 1
-                if self.pre_dict_data['time'] % 100 == 60:
+                if self.pre_dict_data['time'] % 100 == 60: # ex) 9:58:60 -> 9:59:00
                     self.pre_dict_data['time'] += 40
+                if int(self.pre_dict_data['time']/100) % 100 == 60: # ex) 9:60:00 -> 10:00:00
+                    self.pre_dict_data['time'] += 4000
+                    
                 for k in data_seq:
                     self.order[data[k]] = 0
                 Output_data.dict_output_batch(self.output_file_name, self.pre_dict_data, self.order, self.data_bat, self.order_bat, self.bat_size)
