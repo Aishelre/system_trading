@@ -3,6 +3,7 @@
 import collections
 from datetime import datetime
 
+
 def output_strength(output_file, data, st_bat, bat_size, order):
     strength = collections.OrderedDict(data)
     for k in strength.keys():
@@ -34,6 +35,39 @@ def output_strength(output_file, data, st_bat, bat_size, order):
         print(" ** STRENGTH 출력 완료 ** ")
         del st_bat[:]
 
+
+def dict_output_batch_new(output_file, data, order, data_bat, order_bat, bat_size, quote_list):
+    print("NEW OUTPUT BATCH FUNCTION")
+    d = collections.OrderedDict(data)
+    data_bat.append(d)
+    o = collections.OrderedDict(order)
+    order_bat.append(o)
+
+    for i in order:
+        order[i] = 0  # 주문 가능 호가가 변경되는 경우, 주문 불가능 호가에 주문량이 저장되는 것을 방지
+
+    if len(data_bat) >= bat_size:  # bat_size 개 정보가 들어 있으면
+        with open(output_file, "at") as fp:
+            for i in range(0, len(data_bat)):
+                fp.write("time" + "," + "now" + ",")
+                for j in range(0, len(quote_list)):
+                    fp.write(str(quote_list[j]) + ",")
+                fp.write("\n")
+
+                fp.write(str(data_bat[i]['time']) + ',' + str(data_bat[i]["now"]) + ',')
+                for q in quote_list:
+                    fp.write(str(data_bat[i][q]) + ',')
+                fp.write("\n,,")
+
+                for q in quote_list:
+                    fp.write(str(order_bat[i][q]) + ',')
+                fp.write("\n")
+
+            fp.close()
+        print(" ** NEW DICT 출력 완료 ** ")
+        del data_bat[:]
+        del order_bat[:]
+
 def dict_output_batch(output_file, data, order, data_bat, order_bat, bat_size):
     d = collections.OrderedDict(data)
     data_bat.append(d)
@@ -41,7 +75,7 @@ def dict_output_batch(output_file, data, order, data_bat, order_bat, bat_size):
     order_bat.append(o)
 
     for i in order:
-        order[i] = 0
+        order[i] = 0  # 주문 가능 호가가 변경되는 경우, 주문 불가능 호가에 주문량이 저장되는 것을 방지
 
     if len(data_bat) >= bat_size:  # bat_size 개 정보가 들어 있으면
         with open(output_file, "at") as fp:

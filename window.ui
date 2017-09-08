@@ -299,7 +299,7 @@
       </property>
      </item>
     </widget>
-    <widget class="QCheckBox" name="cb_put_all">
+    <widget class="QCheckBox" name="ck_put_all">
      <property name="geometry">
       <rect>
        <x>80</x>
@@ -446,7 +446,7 @@
      <string>      수신 종료      </string>
     </property>
    </widget>
-   <widget class="QPushButton" name="btn_start">
+   <widget class="QPushButton" name="btn_real_data">
     <property name="geometry">
      <rect>
       <x>190</x>
@@ -459,7 +459,7 @@
      <string>실시간 호가 정보</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="btn_basic">
+   <widget class="QPushButton" name="btn_basic_data">
     <property name="geometry">
      <rect>
       <x>190</x>
@@ -470,19 +470,6 @@
     </property>
     <property name="text">
      <string>주식 기본 정보</string>
-    </property>
-   </widget>
-   <widget class="QCheckBox" name="cb_store_data">
-    <property name="geometry">
-     <rect>
-      <x>200</x>
-      <y>260</y>
-      <width>101</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>데이터 저장</string>
     </property>
    </widget>
    <widget class="Line" name="line_4">
@@ -692,14 +679,27 @@
    <widget class="QPushButton" name="btn_test_">
     <property name="geometry">
      <rect>
-      <x>220</x>
-      <y>370</y>
+      <x>190</x>
+      <y>390</y>
       <width>101</width>
       <height>51</height>
      </rect>
     </property>
     <property name="text">
      <string>계좌조회 test</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="ck_auto">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>260</y>
+      <width>101</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>예약 (비활성)</string>
     </property>
    </widget>
   </widget>

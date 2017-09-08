@@ -7,7 +7,10 @@ from PyQt5.QtCore import *
 from PyQt5.QAxContainer import *
 from PyQt5.QtWidgets import *
 import Output_data
+import time
+import threading
 
+#TODO 상한가에 대한 경우도 생각해야함.
 
 class Singleton:
     __instance = None
@@ -134,12 +137,23 @@ class My_Kiwoom(Singleton):
     def btn_search_basic(self):
         if self.status_check() == 0:
             return
-        # Tran 입력 값을 서버통신 전에 입력한다. SetInputValue 를 사용하면 OnReceiveTrData 함수가 실행된다.
         self.kiwoom.dynamicCall('SetInputValue(QString, QString)', "종목코드", self.cur_code)
-        # Tran을 서버로 송신한다.
         self.kiwoom.dynamicCall('CommRqData(QString, QString, int, QString)', "주식기본정보", "OPT10001", 0, "0101")
 
-    def btn_real_start(self):
+    def btn_real_start(self, state=False):
+        """
+        if state == True:
+            now_time = datetime.now().strftime("%H:%M:%S").split(':')
+            now_time = list(map(int, now_time))
+            print(now_time)
+            target_time = [9,10,0]  # 9시 10분 0초
+                        # [10,15,0] [8.50.0] [9,9,0] [9,15,0]
+            t = []
+            for i in range(3):
+                t[i] = target_time[i] - now_time[i]
+
+            threading.Timer(3, self.btn_real_start, args=[True]).start()
+            """
         if self.status_check() == 0:
             return
         self.callback.show_log("※ 실시간 데이터 수신 시작")
@@ -217,6 +231,87 @@ class My_Kiwoom(Singleton):
         else:
             i = 1000
         return i
+    def set_kosdaq_unit(self, num):
+        if num < 1000:
+            i = 1
+        elif num < 5000:
+            i = 5
+        elif num < 10000:
+            i = 10
+        else:
+            i = 100
+        return i
+
+    def my_OnReceiveRealData_new(self, sJongmokCode, sRealType, sRealData):
+        #print(self.prevent_overlap)
+        #if self.prevent_overlap == 1:
+        #    return
+        #else:
+        #    self.prevent_overlap = 1
+        #self.prevent_overlap = 0 # 이 함수 제일 마지막에 넣어야 함.
+
+        print(" ☆★☆★ 테스트 중인 함수입니다. ☆★☆★ ")
+        print("신호 - 종목코드 : {}".format(sJongmokCode))
+        data_seq = [58, 52, 46, 40, 34, 28, 22, 16, 10, 4, 1, 7, 13, 19, 25, 31, 37, 43, 49, 55]
+
+        data = sRealData.split('\t')[:65]
+        data = list(map(int, data))
+        data = list(map(abs, data))
+        self.callback.show_price(abs(int(data[4])))  # gui에 매수1 가격 보여줌
+
+        self.dict_data['time'] = data[0]
+        self.dict_data['now'] = data[4]  # 매수 1
+
+        quote_list = [data[k] for k in data_seq]  # 이벤트로 들어온 호가 리스트를 저장한다.
+
+        for k in data_seq:  # 해당 호가에 주문 잔량을 넣어준다.
+            self.dict_data[data[k]] = data[k+1]
+            #print(data[k], data[k+1])
+
+        if len(self.pre_dict_data) == 0:  # 초기 실행일 때
+            self.pre_dict_data = self.dict_data.copy()  # shallow copy
+            return
+
+        self.data_processing_new(quote_list)
+
+    def data_processing_new(self, quote_list):
+        """
+        list를 사용하면 호가창 변경시 추가 주문량을 계산 할 수가 없기 때문에 dict를 무조건 써야함.
+        data에 들어온 호가들을 리스트에 저장하고,
+        이 호가들을 key로 하는 dict에 for문을 통해 접근한다.
+        """
+        if self.dict_data['time'] == self.pre_dict_data['time']:  # 같은 시간
+            pass
+
+        elif self.dict_data['time'] != self.pre_dict_data['time']:  # 다른 시간
+            cur = str(self.dict_data['time'])
+            pre = str(self.pre_dict_data['time'])
+
+            cur_time = list(map(int, [cur[:-4], cur[-4:-2], cur[-2:]]))  # [0:-4] - 시. [-4:-2] - 분, [-2:] - 초
+            pre_time = list(map(int, [pre[:-4], pre[-4:-2], pre[-2:]]))
+            empty_time = (cur_time[0] - pre_time[0]) * 3600 + (cur_time[1] - pre_time[1]) * 60 + (
+            cur_time[2] - pre_time[2])  # 1시간 이상 비는 경우는 고려 안함.
+
+            for i in range(1, empty_time):  # 1초 이상 주문이 없었을 때
+                self.pre_dict_data['time'] += 1
+                if self.pre_dict_data['time'] % 100 == 60:  # ex) 9:58:60 -> 9:59:00
+                    self.pre_dict_data['time'] += 40
+                if int(self.pre_dict_data['time'] / 100) % 100 == 60:  # ex) 9:60:00 -> 10:00:00
+                    self.pre_dict_data['time'] += 4000
+
+                for q in quote_list:
+                    self.order[q] = 0
+                Output_data.dict_output_batch_new(self.output_file_name, self.pre_dict_data, self.order, self.data_bat,
+                                              self.order_bat, self.bat_size, quote_list)
+                print("NEW 빈 시간 : {}".format(self.pre_dict_data['time']))
+
+            for q in quote_list:  # 추가 주문량 계산
+                self.order[q] = self.dict_data[q] - self.pre_dict_data[q]
+            self.pre_dict_data = self.dict_data.copy()
+            Output_data.dict_output_batch_new(self.output_file_name, self.dict_data, self.order, self.data_bat,
+                                          self.order_bat, self.bat_size, quote_list)
+
+        print("{} NEW data_processing 완료".format(datetime.now().strftime("%H:%M:%S ")))
 
     def my_OnReceiveRealData(self, sJongmokCode, sRealType, sRealData):
         #print(self.prevent_overlap)
@@ -231,7 +326,7 @@ class My_Kiwoom(Singleton):
         data = sRealData.split('\t')[:65]
         data = list(map(int, data))
         data = list(map(abs, data))
-        self.callback.show_price(abs(int(data[4])))
+        self.callback.show_price(abs(int(data[4])))  # gui에 매수1 가격 보여줌
 
         self.dict_data['time'] = data[0]
         self.dict_data['now'] = data[4]  # 매수 1
@@ -241,12 +336,11 @@ class My_Kiwoom(Singleton):
             #print(data[k], data[k+1])
 
         if len(self.pre_dict_data) == 0:  # 초기 실행일 때
-            self.pre_dict_data = self.dict_data.copy()  #collections.OrderedDict(self.dict_data)
+            self.pre_dict_data = self.dict_data.copy()  # shallow copy
             return
 
-        #Output_data.output_result("o_output.csv", data)
         self.data_processing(data)
-
+        self.data_processing_new()
         #self.prevent_overlap = 0
 
     def data_processing(self, data):
@@ -276,7 +370,7 @@ class My_Kiwoom(Singleton):
                     self.pre_dict_data['time'] += 40
                 if int(self.pre_dict_data['time']/100) % 100 == 60: # ex) 9:60:00 -> 10:00:00
                     self.pre_dict_data['time'] += 4000
-                    
+
                 for k in data_seq:
                     self.order[data[k]] = 0
                 Output_data.dict_output_batch(self.output_file_name, self.pre_dict_data, self.order, self.data_bat, self.order_bat, self.bat_size)
@@ -316,7 +410,8 @@ class My_Kiwoom(Singleton):
         # print("{} ※Real Data Event※".format(datetime.now().strftime("%H:%M:%S ")))
 
         if sRealType == "주식호가잔량":
-            self.my_OnReceiveRealData(sJongmokCode, sRealType, sRealData)
+            #self.my_OnReceiveRealData(sJongmokCode, sRealType, sRealData)
+            self.my_OnReceiveRealData_new(sJongmokCode, sRealType, sRealData)
 
     def OnReceiveTrData(self, sScrNo, sRQName, sTRCode, sRecordName, sPreNext):
         # sScrNo - 화면 번호 ex.0101

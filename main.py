@@ -16,8 +16,9 @@ class My_window(QMainWindow):
         self.statusBar().showMessage('Not Connected')
 
         self.ui.btn_log_in.clicked.connect(lambda : kiwoom.btn_login())
-        self.ui.btn_basic.clicked.connect(lambda : kiwoom.btn_search_basic())
-        self.ui.btn_start.clicked.connect(lambda : kiwoom.btn_real_start())
+        self.ui.btn_basic_data.clicked.connect(lambda : kiwoom.btn_search_basic())
+        #self.ui.btn_real_data.clicked.connect(lambda : kiwoom.btn_real_start(self.ui.ck_auto.isChecked()))
+        self.ui.btn_real_data.clicked.connect(lambda: kiwoom.btn_real_start())
         self.ui.btn_stop.clicked.connect(lambda : kiwoom.btn_real_stop())
         self.ui.btn_test_.clicked.connect(lambda : kiwoom.btn_test())
 
