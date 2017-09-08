@@ -1,8 +1,15 @@
 """
+STRENGTH 파일의
 저장 데이터의 시간적 연속성 검정
 
 """
-def testing(filename):
+
+date = "09.08"
+cord = "000660"
+#name = "STR result.csv"
+name = "output.csv"
+filename = date + " " + cord + " - " + name
+def testing():
     print("{} 검정".format(filename))
     with open(filename, "rt") as fp:
         time = 0
@@ -39,11 +46,11 @@ def testing(filename):
 
 if __name__ == "__main__":
     #testing("output.csv")
-    testing("test.csv")
+    testing()
 
 
 """
-def processing(a, b):
+def new_MinMaxScaler(a, b):
     line = []
     a = list(map(int, a[:-1]))
     b = list(map(int, b[:-1]))
@@ -70,7 +77,7 @@ with open("output.csv", 'rt') as fp:
 
             ap.write(line1)
             ap.write(line2)
-            line3 = processing(line1.split(','), line2.split(','))
+            line3 = new_MinMaxScaler(line1.split(','), line2.split(','))
             line3 = ','.join(line3)
             print(line3)
             ap.write(line3+'\n,\n')

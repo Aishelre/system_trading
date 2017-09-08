@@ -6,12 +6,12 @@ st = order / pre_remain * 1000
 from math import *
 from datetime import datetime
 
-cord = "047810"
+cord = "000660"
 
-today = datetime.now().strftime("%m.%d ")
-file = today + cord + " - output.csv"
-result = today + cord + " - STR result.csv"
-#result2 = today + cord + " - STR processed.csv"
+day = datetime.now().strftime("%m.%d ")
+#day = "0909"
+file = day + cord + " - output.csv"
+result = day + cord + " - STR result.csv"
 
 strength = []
 
@@ -31,10 +31,10 @@ with open(file, 'rt') as ori:
     with open(result, 'wt') as re:
         ori_line = ori.readlines()
         length = len(ori_line)
-        print(length)
+        print("row : ", length)
 
         for i in range(int(length/3)):
-            print(i)
+            print(i+1, " / ", length/3)
             quotes = ori_line[3*i].split(',')
             datas = ori_line[3 * i + 1].split(',')
             mores = ori_line[3*i + 2].split(',')
@@ -50,7 +50,8 @@ with open(file, 'rt') as ori:
                     continue
                 strength.append(processing(int(datas[k]), int(mores[k])))
 
-            put_index = quotes.index(now) + 1
+            #put_index = quotes.index(now) + 1
+            put_index = int(2 + (len(quotes)-2)/2)
             # 현재가 초과의 호가에 대해서는 (-1)을 곱한다.
             for i in range(put_index, len(strength)):
                 strength[i] = float(strength[i]) * (-1)
@@ -67,18 +68,3 @@ with open(file, 'rt') as ori:
             strength.clear()
         re.close()
     ori.close()
-
-# 주석처리가 안됨
-#with open(result, 'rt') as re:  # 강도의 합을 다른 파일에 출력한다.
-''''    with open(result2, 'wt') as pro:
-        for line in re:
-            l = line[:-2].split(',')
-            pro.write(l[0] + ',')
-            pro.write(l[1] + ',')
-            l = list(map(float, l))
-            val = sum(l[2:])
-            print(val)
-            pro.write(str(val) + '\n')
-
-        pro.close()
-    re.close()'''
