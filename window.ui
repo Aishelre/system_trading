@@ -702,6 +702,19 @@
      <string>예약 (비활성)</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="btn_auto">
+    <property name="geometry">
+     <rect>
+      <x>290</x>
+      <y>260</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>쓰레딩</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">

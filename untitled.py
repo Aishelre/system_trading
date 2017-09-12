@@ -41,6 +41,7 @@ class My_Kiwoom(Singleton):
 
         self.output_file_name = str()
         self.st_file_name = str()
+        self.market = str()  # 코스피 or 코스닥
         self.bat_size = 3  # bat_size 초 동안의 데이터가 한번에 저장됨
 
         self.now = 0
@@ -58,6 +59,9 @@ class My_Kiwoom(Singleton):
 
         self.st_data = collections.OrderedDict()
         self.st_bat = []  # 주문의 강도를 파일로 출력
+
+    def get_cur_code(self):
+        return self.cur_code
 
     def btn_test(self):
         print("btn_test")
@@ -140,31 +144,26 @@ class My_Kiwoom(Singleton):
         self.kiwoom.dynamicCall('SetInputValue(QString, QString)', "종목코드", self.cur_code)
         self.kiwoom.dynamicCall('CommRqData(QString, QString, int, QString)', "주식기본정보", "OPT10001", 0, "0101")
 
-    def btn_real_start(self, state=False):
-        """
-        if state == True:
-            now_time = datetime.now().strftime("%H:%M:%S").split(':')
-            now_time = list(map(int, now_time))
-            print(now_time)
-            target_time = [9,10,0]  # 9시 10분 0초
-                        # [10,15,0] [8.50.0] [9,9,0] [9,15,0]
-            t = []
-            for i in range(3):
-                t[i] = target_time[i] - now_time[i]
-
-            threading.Timer(3, self.btn_real_start, args=[True]).start()
-            """
+    def btn_real_start(self):
+        print("btn real start")
         if self.status_check() == 0:
             return
+        self.callback.ui.btn_real_data.setEnabled(False)
+        self.callback.ui.btn_stop.setEnabled(True)
+
         self.callback.show_log("※ 실시간 데이터 수신 시작")
         self.kiwoom.dynamicCall('SetInputValue(QString, QString)', "종목코드", self.cur_code)
         self.kiwoom.dynamicCall('SetRealReg(QString, QString, QString, QString)', "0102", self.cur_code, "", "0")
         self.kiwoom.dynamicCall('CommRqData(QString, QString, int, QString)', "주식호가요청", "OPT10004", 0, "0102")
 
     def btn_real_stop(self):
+        print("btn real stop")
         if self.status_check() == 0:
             self.kiwoom.dynamicCall('SetRealRemove("All", "All")')
             return
+        self.callback.ui.btn_real_data.setEnabled(True)
+        self.callback.ui.btn_stop.setEnabled(False)
+
         self.callback.show_log("※ 실시간 데이터 수신 종료", t=True)
         self.kiwoom.dynamicCall('SetRealRemove("All", "All")')
 
@@ -188,14 +187,22 @@ class My_Kiwoom(Singleton):
         self.kiwoom.dynamicCall('SetInputValue(QString, QString)', "종목코드", self.cur_code)
         self.kiwoom.dynamicCall('CommRqData(QString, QString, int, QString)', "기준가_시가", "OPT10001", 0, "0103")
 
+        foo = self.kiwoom.GetMarketType(self.cur_code)
+        if foo == 0:
+            self.market = "코스피"
+        elif foo == 10:
+            self.market = "코스닥"
+        #else:
+        #   #throw Error
+
     def set_quote(self):
         self.std_price = int(self.std_price)
         self.opening_price = abs(int(self.opening_price))
 
         lower_limit = math.ceil(self.std_price * 0.7)
         upper_limit = math.floor(self.std_price * 1.3)
-        i = self.set_kospi_unit(lower_limit)
-        j = self.set_kospi_unit(upper_limit)
+        i = self.set_unit(lower_limit)
+        j = self.set_unit(upper_limit)
 
         while lower_limit % i != 0:
             lower_limit += 1
@@ -212,35 +219,38 @@ class My_Kiwoom(Singleton):
             self.dict_data[q] = 0  # 호가 '잔량' 기본 셋팅
             self.order[q] = 0  # '주문량' 기본 셋팅
             self.quotes.append(q)  # 매수, 매도 시 선택할 수 있는 호가
-            i = self.set_kospi_unit(q)
+            i = self.set_unit(q)
             q += i
 
         self.callback.show_quote(self.quotes, self.opening_price)
 
-    def set_kospi_unit(self, num):
-        if num < 5000:
-            i = 5
-        elif num < 10000:
-            i = 10
-        elif num < 50000:
-            i = 50
-        elif num < 100000:
-            i = 100
-        elif num < 500000:
-            i = 500
-        else:
-            i = 1000
-        return i
-    def set_kosdaq_unit(self, num):
-        if num < 1000:
-            i = 1
-        elif num < 5000:
-            i = 5
-        elif num < 10000:
-            i = 10
-        else:
-            i = 100
-        return i
+    def set_unit(self, num):
+        if self.market == "코스피":
+            if num < 5000:
+                i = 5
+            elif num < 10000:
+                i = 10
+            elif num < 50000:
+                i = 50
+            elif num < 100000:
+                i = 100
+            elif num < 500000:
+                i = 500
+            else:
+                i = 1000
+            return i
+        elif self.market == "코스닥":
+            if num < 1000:
+                i = 1
+            elif num < 5000:
+                i = 5
+            elif num < 10000:
+                i = 10
+            else:
+                i = 100
+            return i
+        else :
+            print("시장 구분 에러.")
 
     def my_OnReceiveRealData_new(self, sJongmokCode, sRealType, sRealData):
         #print(self.prevent_overlap)
@@ -264,9 +274,13 @@ class My_Kiwoom(Singleton):
 
         quote_list = [data[k] for k in data_seq]  # 이벤트로 들어온 호가 리스트를 저장한다.
 
-        for k in data_seq:  # 해당 호가에 주문 잔량을 넣어준다.
-            self.dict_data[data[k]] = data[k+1]
-            #print(data[k], data[k+1])
+        for k in range(0,10):  # 해당 호가에 주문 잔량을 넣어준다.
+            idx = data_seq[k]
+            self.dict_data[data[idx]] = data[idx+1]
+
+        for k in range(10,20):  # 매도 호가의 주문 잔량은 기본적으로 (-)이다.
+            idx = data_seq[k]
+            self.dict_data[data[idx]] = -1 * data[idx+1]
 
         if len(self.pre_dict_data) == 0:  # 초기 실행일 때
             self.pre_dict_data = self.dict_data.copy()  # shallow copy
@@ -461,6 +475,7 @@ class My_Kiwoom(Singleton):
             list_.append(t)
             for i in range(len(list_)):
                 print(list_[i])
+
         if sRQName == "매수":
             print("TR - 매수")
             print(sTRCode)
@@ -487,8 +502,8 @@ class My_Kiwoom(Singleton):
             cnt = self.kiwoom.dynamicCall('GetRepeatCnt(QString, QString)', sTRCode, sRQName)
             self.kiwoom.dynamicCall('SetRealRemove("All", "All")')
 
-            info_name = ["종목명","종목코드","시가","기준가","현재가","시가총액"]
-            info = [name, cord, self.opening_price, self.std_price, cur_price, stock_value]
+            info_name = ["종목명","종목코드", "시장", "시가","기준가","현재가","시가총액"]
+            info = [name, cord, self.market, self.opening_price, self.std_price, cur_price, stock_value]
 
             self.callback.show_log("", t=True)
             for i in range(len(info)):

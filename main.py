@@ -1,11 +1,14 @@
 
 import sys
+import time
+from multiprocessing import Process
 from PyQt5 import uic
 from PyQt5.QtGui import *
 from PyQt5.QAxContainer import *
 from PyQt5.QtWidgets import *
 from datetime import datetime
 import Kiwoom_stock
+import threading
 
 class My_window(QMainWindow):
     def __init__(self):
@@ -17,9 +20,9 @@ class My_window(QMainWindow):
 
         self.ui.btn_log_in.clicked.connect(lambda : kiwoom.btn_login())
         self.ui.btn_basic_data.clicked.connect(lambda : kiwoom.btn_search_basic())
-        #self.ui.btn_real_data.clicked.connect(lambda : kiwoom.btn_real_start(self.ui.ck_auto.isChecked()))
         self.ui.btn_real_data.clicked.connect(lambda: kiwoom.btn_real_start())
         self.ui.btn_stop.clicked.connect(lambda : kiwoom.btn_real_stop())
+        self.ui.btn_stop.setEnabled(False)
         self.ui.btn_test_.clicked.connect(lambda : kiwoom.btn_test())
 
         self.ui.btn_call_.clicked.connect(lambda: kiwoom.btn_call(int(self.cb_call_price.currentText()), self.sb_call_total.value()))
@@ -42,6 +45,52 @@ class My_window(QMainWindow):
             codes = fp.read().splitlines()
             for code in codes:
                 self.ui.list_int_code.addItem(code)
+
+        """
+        multi threading으로 10분 sleep으로  9시, 15시가 지났는지 확인.
+        지났으면 시작/종료. 10분동안 쓰레드가 정지이므로 while보다 나을 듯.
+        """
+
+        self.ui.btn_auto.clicked.connect(self.time_check_thread)
+
+    def time_check_thread(self):
+        thr = threading.Thread(target=self.time_check, args=())
+        thr.daemon = True
+        thr.start()
+
+    def time_check(self):
+        if kiwoom.get_cur_code() == "":
+            self.ui.btn_auto.setEnabled(True)
+            self.show_log("FAILED : Auto start failed. - select CODE", t=False)
+            return
+
+        self.show_log("Auto start executed", t=True)
+        self.ui.btn_auto.setEnabled(False)
+
+        now = int(datetime.now().strftime("%H"))
+        while now <= 9:
+            now = int(datetime.now().strftime("%H"))
+            print(now)
+            if now >= 9:
+                print("9시 경과. 시작")
+                self.ui.btn_real_data.click()  # 직접 kiwoom.btn () 을 호출하면 프로그램이 멈춘다.
+                break
+            else:
+                print("9시 이전")
+                time.sleep(600)  # 10분
+        time.sleep(1)
+        while True:
+            now = int(datetime.now().strftime("%H"))
+            print(now)
+            if now >= 15:
+                print("15시. 종료")
+                self.ui.btn_stop.click()
+                break
+            else:
+                print("15시 이전")
+                time.sleep(600)  # 10분
+        self.ui.btn_auto.setEnabled(True)
+
 
     def resize_table(self):
         width = 76
