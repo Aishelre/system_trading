@@ -1,8 +1,8 @@
-# 17.07.27 16:00
+# 17.09.14
 
 import collections
 from datetime import datetime
-
+import Data_Processing.str_scaling
 
 def output_strength(output_file, data, st_bat, bat_size, order):
     strength = collections.OrderedDict(data)
@@ -35,6 +35,24 @@ def output_strength(output_file, data, st_bat, bat_size, order):
         print(" ** STRENGTH 출력 완료 ** ")
         del st_bat[:]
 
+def output_for_thr(output_file, real_data, quote_list):
+    """
+    real_data = {  'time': 0, 'now': 0,
+                    호가1: ( 잔량, 추가량 ) ...  }
+    """
+    # TODO 한번에 STR - Processed 까지 출력 가능하게.???
+    # TODO TF에 넘겨줄 때는 Processed 된 데이터를 넘겨주면 됨.
+
+    print("Output _ for _ thr")
+
+    procesesd_data = Data_Processing.str_scaling(real_data, quote_list)
+
+    with open(output_file, "wt") as fp:
+
+
+
+        pass
+    pass
 
 def dict_output_batch_new(output_file, data, order, data_bat, order_bat, bat_size, quote_list):
     print("NEW OUTPUT BATCH FUNCTION")
