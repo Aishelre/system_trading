@@ -2,57 +2,35 @@
 
 import collections
 from datetime import datetime
-import Data_Processing.str_scaling
 
-def output_strength(output_file, data, st_bat, bat_size, order):
-    strength = collections.OrderedDict(data)
-    for k in strength.keys():
-        if k == 'time' or k == 'now':
-            print(k)
-            continue
-        pre_remain = strength[k] - order[k]
-        if pre_remain == 0 and order[k] == 0:
-            strength[k] = 0
-        elif pre_remain == 0 and order[k] != 0:
-            strength[k] = 1
-        elif pre_remain != 0 and order[k] == 0:
-            strength[k] = 1
-        else:
-            strength[k] = 1 + order[k] / pre_remain * 1000
-            # 값이 0 이상일 때 +1, 음수일 땐 그냥 사용?
-    st_bat.append(strength)
-
-    if len(st_bat) >= bat_size:  # bat_size 개 정보가 들어 있으면
-        with open(output_file, "at") as ffp:
-            for i in range(0, len(st_bat)):
-                for key in st_bat[i].keys():
-                    ffp.write(str(key) + ",")
-                ffp.write("\n")
-                for st in st_bat[i].values():
-                    ffp.write(str(st) + ",")
-                ffp.write("\n")
-            ffp.close()
-        print(" ** STRENGTH 출력 완료 ** ")
-        del st_bat[:]
-
-def output_for_thr(output_file, real_data, quote_list):
-    """
-    real_data = {  'time': 0, 'now': 0,
-                    호가1: ( 잔량, 추가량 ) ...  }
-    """
-    # TODO 한번에 STR - Processed 까지 출력 가능하게.???
-    # TODO TF에 넘겨줄 때는 Processed 된 데이터를 넘겨주면 됨.
-
+def thr_output(output_file, processed_data):
     print("Output _ for _ thr")
 
-    procesesd_data = Data_Processing.str_scaling(real_data, quote_list)
-
     with open(output_file, "wt") as fp:
+        for item in processed_data:
+            fp.write(str(item) + ",")
+        fp.write("\n")
+    fp.close()
 
+def thr_data_gathering(output_file, real_data, quote_list):
+    print("Data_Gathering")
+    with open(output_file, 'wt') as fp:
 
+        fp.write("time" + "," + "now" + ",")
+        for q in quote_list:
+            fp.write(str(q) + ",")  # 주문 가격
+        fp.write("\n")
 
-        pass
-    pass
+        fp.write(str(real_data['time']) + "," + str(real_data['now']) + ",")
+        for q in quote_list:
+            fp.write(str(real_data[q][0]) + ",")  # 주문 잔량
+        fp.write("\n,")
+
+        for q in quote_list:
+            fp.write(str(real_data[q][1]) + ",")  # 추가 주문량
+        fp.write("\n")
+        fp.close()
+
 
 def dict_output_batch_new(output_file, data, order, data_bat, order_bat, bat_size, quote_list):
     print("NEW OUTPUT BATCH FUNCTION")
