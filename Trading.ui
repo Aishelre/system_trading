@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>1188</width>
-    <height>731</height>
+    <height>792</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -498,11 +498,11 @@
      <bool>false</bool>
     </property>
    </widget>
-   <widget class="QTableWidget" name="table">
+   <widget class="QTableWidget" name="tb_acc_detail">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>490</y>
+      <y>553</y>
       <width>872</width>
       <height>192</height>
      </rect>
@@ -528,6 +528,18 @@
     <property name="frameShadow">
      <enum>QFrame::Sunken</enum>
     </property>
+    <property name="alternatingRowColors">
+     <bool>true</bool>
+    </property>
+    <attribute name="horizontalHeaderCascadingSectionResizes">
+     <bool>false</bool>
+    </attribute>
+    <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+     <bool>false</bool>
+    </attribute>
+    <attribute name="horizontalHeaderStretchLastSection">
+     <bool>true</bool>
+    </attribute>
     <row>
      <property name="text">
       <string>1</string>
@@ -542,55 +554,142 @@
      <property name="text">
       <string>종목코드</string>
      </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="background">
+      <color>
+       <red>175</red>
+       <green>175</green>
+       <blue>175</blue>
+      </color>
+     </property>
     </column>
     <column>
      <property name="text">
       <string>종목명</string>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="background">
+      <color>
+       <red>175</red>
+       <green>175</green>
+       <blue>175</blue>
+      </color>
      </property>
     </column>
     <column>
      <property name="text">
       <string>평가손익</string>
      </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
     </column>
     <column>
      <property name="text">
       <string>수익률</string>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
      </property>
     </column>
     <column>
      <property name="text">
       <string>매입가</string>
      </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
     </column>
     <column>
      <property name="text">
       <string>현재가</string>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
      </property>
     </column>
     <column>
      <property name="text">
       <string>손익분기</string>
      </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
     </column>
     <column>
      <property name="text">
       <string>매입금액</string>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
      </property>
     </column>
     <column>
      <property name="text">
       <string>평가금액</string>
      </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
     </column>
     <column>
      <property name="text">
       <string>보유수량</string>
      </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
     </column>
     <column>
      <property name="text">
       <string>가능수량</string>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="background">
+      <color>
+       <red>175</red>
+       <green>175</green>
+       <blue>175</blue>
+      </color>
      </property>
     </column>
     <item row="1" column="0">
@@ -600,27 +699,27 @@
     </item>
     <item row="1" column="1">
      <property name="text">
-      <string>괜히</string>
+      <string/>
      </property>
     </item>
     <item row="1" column="2">
      <property name="text">
-      <string>이렇게</string>
+      <string/>
      </property>
     </item>
     <item row="1" column="3">
      <property name="text">
-      <string>무겁게</string>
+      <string/>
      </property>
     </item>
     <item row="1" column="4">
      <property name="text">
-      <string>만들어야</string>
+      <string/>
      </property>
     </item>
     <item row="1" column="5">
      <property name="text">
-      <string>할까?</string>
+      <string/>
      </property>
     </item>
    </widget>
@@ -716,6 +815,138 @@
     <property name="flat">
      <bool>false</bool>
     </property>
+   </widget>
+   <widget class="QTableWidget" name="tb_acc1">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>490</y>
+      <width>201</width>
+      <height>62</height>
+     </rect>
+    </property>
+    <property name="columnCount">
+     <number>1</number>
+    </property>
+    <attribute name="horizontalHeaderVisible">
+     <bool>false</bool>
+    </attribute>
+    <attribute name="horizontalHeaderMinimumSectionSize">
+     <number>30</number>
+    </attribute>
+    <attribute name="horizontalHeaderStretchLastSection">
+     <bool>true</bool>
+    </attribute>
+    <row>
+     <property name="text">
+      <string>총 매입</string>
+     </property>
+    </row>
+    <row>
+     <property name="text">
+      <string>총 평가</string>
+     </property>
+    </row>
+    <column>
+     <property name="text">
+      <string/>
+     </property>
+    </column>
+    <item row="1" column="0">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="flags">
+      <set>ItemIsDragEnabled</set>
+     </property>
+    </item>
+   </widget>
+   <widget class="QTableWidget" name="tb_acc2">
+    <property name="geometry">
+     <rect>
+      <x>222</x>
+      <y>490</y>
+      <width>201</width>
+      <height>62</height>
+     </rect>
+    </property>
+    <property name="columnCount">
+     <number>1</number>
+    </property>
+    <attribute name="horizontalHeaderVisible">
+     <bool>false</bool>
+    </attribute>
+    <attribute name="horizontalHeaderStretchLastSection">
+     <bool>true</bool>
+    </attribute>
+    <row>
+     <property name="text">
+      <string>총 손익</string>
+     </property>
+    </row>
+    <row>
+     <property name="text">
+      <string>수익률</string>
+     </property>
+    </row>
+    <column>
+     <property name="text">
+      <string/>
+     </property>
+    </column>
+    <item row="0" column="0">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="flags">
+      <set>ItemIsDragEnabled|ItemIsEnabled</set>
+     </property>
+    </item>
+    <item row="1" column="0">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="flags">
+      <set>ItemIsDragEnabled|ItemIsEnabled</set>
+     </property>
+    </item>
+   </widget>
+   <widget class="QTableWidget" name="tb_acc3">
+    <property name="geometry">
+     <rect>
+      <x>424</x>
+      <y>490</y>
+      <width>201</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="columnCount">
+     <number>1</number>
+    </property>
+    <attribute name="horizontalHeaderVisible">
+     <bool>false</bool>
+    </attribute>
+    <attribute name="horizontalHeaderStretchLastSection">
+     <bool>true</bool>
+    </attribute>
+    <row>
+     <property name="text">
+      <string>실현 손익</string>
+     </property>
+    </row>
+    <column>
+     <property name="text">
+      <string/>
+     </property>
+    </column>
+    <item row="0" column="0">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="flags">
+      <set>ItemIsDragEnabled|ItemIsEnabled</set>
+     </property>
+    </item>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
