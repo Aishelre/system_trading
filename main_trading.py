@@ -1,12 +1,12 @@
 
 import sys
 import time
-from multiprocessing import Process
+from datetime import datetime
 from PyQt5 import uic
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import *
 from PyQt5.QAxContainer import *
 from PyQt5.QtWidgets import *
-from datetime import datetime
 import Kiwoom_stock
 import threading
 
@@ -23,7 +23,7 @@ class My_window(QMainWindow):
         self.ui.btn_real_data.clicked.connect(lambda: kiwoom.btn_real_start())
         self.ui.btn_stop.clicked.connect(lambda : kiwoom.btn_real_stop())
         self.ui.btn_stop.setEnabled(False)
-        self.ui.btn_test_.clicked.connect(lambda : kiwoom.btn_test())
+        self.ui.btn_ref_acc.clicked.connect(lambda : kiwoom.refresh_acc())
 
         self.ui.btn_call_.clicked.connect(lambda: kiwoom.btn_call(int(self.cb_call_price.currentText()), self.sb_call_total.value()))
         self.ui.btn_put_.clicked.connect(lambda: kiwoom.btn_put(int(self.cb_put_price.currentText()), self.sb_call_total.value()))
@@ -38,7 +38,7 @@ class My_window(QMainWindow):
         self.ui.sb_call_total.setMaximum(self.order_max)
         self.ui.sb_put_total.setMaximum(self.order_max)
 
-        self.resize_table()
+        self.resize_acc_table()
 
         with open("int_code_list.txt", "rt") as fp:  # 저장된 종목을 불러온다.
         #with open("all_codes.txt", "rt") as fp:  # 저장된 종목을 불러온다.
@@ -56,7 +56,7 @@ class My_window(QMainWindow):
     def time_check(self):
         if kiwoom.get_cur_code() == "":
             self.ui.btn_auto.setEnabled(True)
-            self.show_log("FAILED : Auto start failed. - select CODE", t=False)
+            self.show_log("[FAILED] Auto start failed. - select CODE", t=False)
             return
 
         self.show_log("Auto start executed", t=True)
@@ -86,20 +86,98 @@ class My_window(QMainWindow):
                 time.sleep(600)  # 10분
         self.ui.btn_auto.setEnabled(True)
 
+    def refresh_acc_table(self, acc_info):
+        """ 
+        0  :  ['A000660', 'SK하이닉스', 17300, 11.78, 73450.0, 82100, 146900, 164200, 2]
+        1  :  ['A023900', '풍국주정', -2700, -24.66, 10950.0, 8250, 10950, 8250, 1]
+        2  :  ['A047810', '한국항공우주', -2300, -5.01, 45950.0, 43650, 45950, 43650, 1]
+        3  :  ['A103590', '일진전기', -3320, -15.6, 5320.0, 4490, 21280, 17960, 4]
+        4  :  ['A108860', '셀바스AI', -410, -11.36, 3610.0, 3200, 3610, 3200, 1]
+        5  :  ['A140520', '대창스틸', -220, -6.5, 3385.0, 3165, 3385, 3165, 1]
+        6  :  ['A191420', '테고사이언스', -19700, -8.4, 78166.67, 71600, 234500, 214800, 3]
+"""
+        purchase = QTableWidgetItem(acc_info[0])
+        eval = QTableWidgetItem(acc_info[1])
+        profit = QTableWidgetItem(acc_info[2])  # Profit and Loss
+        my_yield = QTableWidgetItem(acc_info[3]+"%")  # 현재 수익률
 
-    def resize_table(self):
-        width = 76
-        self.ui.table.horizontalHeader().resizeSection(0, width)  # 종목코드
-        self.ui.table.horizontalHeader().resizeSection(1, width+19)  # 종목명
-        self.ui.table.horizontalHeader().resizeSection(2, width)  # 평가손익
-        self.ui.table.horizontalHeader().resizeSection(3, width)  # 수익률
-        self.ui.table.horizontalHeader().resizeSection(4, width)  # 매입가
-        self.ui.table.horizontalHeader().resizeSection(5, width)  # 현재가
-        self.ui.table.horizontalHeader().resizeSection(6, width)  # 손익분기
-        self.ui.table.horizontalHeader().resizeSection(7, width)  # 매입금액
-        self.ui.table.horizontalHeader().resizeSection(8, width)  # 평가금액
-        self.ui.table.horizontalHeader().resizeSection(9, width)  # 보유수량
-        self.ui.table.horizontalHeader().resizeSection(10, width)  # 가능수량
+        items = [purchase, eval, profit, my_yield]
+        for i in items:
+            i.setTextAlignment(Qt.AlignCenter)  # cell의 중앙 정렬
+        for i, v in enumerate(items[2:], 2):  # (+ , -)에 따라서 색 입히기.
+            if float(acc_info[i]) > 0:
+                v.setForeground(QColor("red"))
+            elif float(acc_info[i]) < 0:
+                v.setForeground(QColor("blue"))
+
+        self.ui.tb_acc1.setItem(0, 0, purchase)
+        self.ui.tb_acc1.setItem(0, 1, eval)
+        self.ui.tb_acc2.setItem(0, 0, profit)
+        self.ui.tb_acc2.setItem(0, 1, my_yield)
+
+    def refresh_acc_table2(self, total_call_, total_put_, commission_,  profit_):
+        total_call= QTableWidgetItem(str(total_call_))
+        total_put= QTableWidgetItem(str(total_put_))
+        commission = QTableWidgetItem("-"+str(commission_))
+        d_profit = QTableWidgetItem(str(profit_))
+
+        items = [total_call, total_put, commission, d_profit]
+        for i in items:
+            i.setTextAlignment(Qt.AlignCenter)
+        if int(profit_) > 0:
+            d_profit.setForeground(QColor("red"))
+        elif int(profit_) < 0:
+            d_profit.setForeground(QColor("blue"))
+
+        self.ui.tb_acc3.setItem(0, 0, total_call)
+        self.ui.tb_acc3.setItem(0, 1, total_put)
+        self.ui.tb_acc4.setItem(0, 0, commission)
+        self.ui.tb_acc4.setItem(0, 1, d_profit)
+
+    def refresh_acc_table_detail(self, acc_info_detail):
+        self.ui.tb_acc_detail.setRowCount(len(acc_info_detail))
+        self.ui.tb_acc_detail.setColumnCount(len(acc_info_detail[0]))
+
+        for i in range(0, len(acc_info_detail)):
+            for j in range(0, len(acc_info_detail[i])):
+                item = QTableWidgetItem(str(acc_info_detail[i][j]))
+                if j == 2 or j == 3:  # 평가손익, 손익률에 대해
+                    if acc_info_detail[i][j] > 0:
+                        item.setForeground(QColor("red"))
+                    else:
+                        item.setForeground(QColor("blue"))
+                elif j == 5 or j == 7:  # 현재가, 평가금액에 대해
+                    if acc_info_detail[i][j] > acc_info_detail[i][j-1]:
+                        item.setForeground(QColor("red"))
+                    else:
+                        item.setForeground(QColor("blue"))
+
+                item.setTextAlignment(Qt.AlignCenter)  # cell의 중앙 정렬
+                self.ui.tb_acc_detail.setItem(i, j, item)
+        self.resize_acc_table()
+
+
+
+
+    def resize_acc_table(self):
+        self.ui.tb_acc1.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 수정 못하도록 설정.
+        self.ui.tb_acc2.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.ui.tb_acc3.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.ui.tb_acc4.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.ui.tb_acc_detail.setEditTriggers(QAbstractItemView.NoEditTriggers)
+
+        width = 87
+        self.ui.tb_acc_detail.horizontalHeader().resizeSection(0, width+5)  # 종목코드
+        self.ui.tb_acc_detail.horizontalHeader().resizeSection(1, width+10)  # 종목명
+        self.ui.tb_acc_detail.horizontalHeader().resizeSection(2, width)  # 평가손익
+        self.ui.tb_acc_detail.horizontalHeader().resizeSection(3, width)  # 수익률
+        self.ui.tb_acc_detail.horizontalHeader().resizeSection(4, width)  # 매입가
+        self.ui.tb_acc_detail.horizontalHeader().resizeSection(5, width)  # 현재가
+        self.ui.tb_acc_detail.horizontalHeader().resizeSection(6, width+5)  # 매입금액
+        self.ui.tb_acc_detail.horizontalHeader().resizeSection(7, width+5)  # 평가금액
+        self.ui.tb_acc_detail.horizontalHeader().resizeSection(8, width-20)  # 보유수량
+        self.ui.tb_acc_detail.horizontalHeader().resizeSection(9, width-20)  # 가능수량
+
 
     def show_quote(self, quote, opening_price):
         self.ui.cb_call_price.clear()
@@ -112,18 +190,22 @@ class My_window(QMainWindow):
         self.ui.cb_call_price.setCurrentIndex(self.ui.cb_call_price.findData(opening_price))
         self.ui.cb_put_price.setCurrentIndex(self.ui.cb_call_price.findData(opening_price))
 
-    def show_log(self, string, t=True, pre=""):
+    def show_log(self, string, t=True, pre="", color="black"):
         nowTime = ""
         if t == True:
             nowTime = datetime.now().strftime("%H:%M:%S ")
-        self.ui.list_log.addItem(pre+nowTime+string)
+        item = QListWidgetItem(pre+nowTime+string)
+        item.setForeground(QColor(color))
+        self.ui.list_log.addItem(item)
         self.ui.list_log.scrollToBottom()
 
-    def show_order_log(self, string, t=True, pre=""):
+    def show_order_log(self, string, t=True, pre="", color="black"):
         nowTime = ""
         if t == True:
             nowTime = datetime.now().strftime("%H:%M:%S ")
-        self.ui.list_order_log.addItem(pre+nowTime+string)
+        item = QListWidgetItem(pre+nowTime+string)
+        item.setForeground(QColor(color))
+        self.ui.list_order_log.addItem(item)
         self.ui.list_order_log.scrollToBottom()
 
     def code_selected(self, cur_code):
