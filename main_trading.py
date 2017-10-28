@@ -25,18 +25,13 @@ class My_window(QMainWindow):
         self.ui.btn_stop.setEnabled(False)
         self.ui.btn_ref_acc.clicked.connect(lambda : kiwoom.refresh_acc())
 
-        self.ui.btn_call_.clicked.connect(lambda: kiwoom.btn_call(int(self.cb_call_price.currentText()), self.sb_call_total.value()))
-        self.ui.btn_put_.clicked.connect(lambda: kiwoom.btn_put(int(self.cb_put_price.currentText()), self.sb_call_total.value()))
+        self.ui.btn_call_.clicked.connect(lambda: kiwoom.btn_call(int(self.cb_call_price.currentText()), self.sb_call_vol.value()))
+        self.ui.btn_put_.clicked.connect(lambda: kiwoom.btn_put(int(self.cb_put_price.currentText()), self.sb_put_vol.value()))
 
         self.ui.cb_acc.currentIndexChanged.connect(lambda : kiwoom.set_acc(self.cb_acc.currentText()))
         self.ui.list_int_code.itemClicked.connect(lambda : self.code_selected(self.list_int_code.currentItem().text()))
 
         self.ui.lb_cur_code.returnPressed.connect(lambda : self.code_selected(self.lb_cur_code.text()))
-        self.ui.lb_passwd.returnPressed.connect(lambda : kiwoom.set_passwd(self.lb_passwd.text()))
-
-        self.order_max = 500000  # 한 번에 주문 할 수 있는 최대 한도 설정
-        self.ui.sb_call_total.setMaximum(self.order_max)
-        self.ui.sb_put_total.setMaximum(self.order_max)
 
         self.resize_acc_table()
 
@@ -87,77 +82,88 @@ class My_window(QMainWindow):
         self.ui.btn_auto.setEnabled(True)
 
     def refresh_acc_table(self, acc_info):
-        """ 
-        0  :  ['A000660', 'SK하이닉스', 17300, 11.78, 73450.0, 82100, 146900, 164200, 2]
-        1  :  ['A023900', '풍국주정', -2700, -24.66, 10950.0, 8250, 10950, 8250, 1]
-        2  :  ['A047810', '한국항공우주', -2300, -5.01, 45950.0, 43650, 45950, 43650, 1]
-        3  :  ['A103590', '일진전기', -3320, -15.6, 5320.0, 4490, 21280, 17960, 4]
-        4  :  ['A108860', '셀바스AI', -410, -11.36, 3610.0, 3200, 3610, 3200, 1]
-        5  :  ['A140520', '대창스틸', -220, -6.5, 3385.0, 3165, 3385, 3165, 1]
-        6  :  ['A191420', '테고사이언스', -19700, -8.4, 78166.67, 71600, 234500, 214800, 3]
-"""
-        purchase = QTableWidgetItem(acc_info[0])
-        eval = QTableWidgetItem(acc_info[1])
-        profit = QTableWidgetItem(acc_info[2])  # Profit and Loss
-        my_yield = QTableWidgetItem(acc_info[3]+"%")  # 현재 수익률
+        """
+        tb_acc1 : 총 매입, 총 평가
+        tb_acc2 : 평가 손익, 수익률
+        """
+        try:
+            purchase = QTableWidgetItem(acc_info[0])
+            eval = QTableWidgetItem(acc_info[1])
+            profit = QTableWidgetItem(acc_info[2])  # Profit and Loss
+            my_yield = QTableWidgetItem(acc_info[3]+"%")  # 현재 수익률
 
-        items = [purchase, eval, profit, my_yield]
-        for i in items:
-            i.setTextAlignment(Qt.AlignCenter)  # cell의 중앙 정렬
-        for i, v in enumerate(items[2:], 2):  # (+ , -)에 따라서 색 입히기.
-            if float(acc_info[i]) > 0:
-                v.setForeground(QColor("red"))
-            elif float(acc_info[i]) < 0:
-                v.setForeground(QColor("blue"))
+            items = [purchase, eval, profit, my_yield]
+            for i in items:
+                i.setTextAlignment(Qt.AlignCenter)  # cell의 중앙 정렬
+            for i, v in enumerate(items[2:], 2):  # (+ , -)에 따라서 색 입히기.
+                if float(acc_info[i]) > 0:
+                    v.setForeground(QColor("red"))
+                elif float(acc_info[i]) < 0:
+                    v.setForeground(QColor("blue"))
 
-        self.ui.tb_acc1.setItem(0, 0, purchase)
-        self.ui.tb_acc1.setItem(0, 1, eval)
-        self.ui.tb_acc2.setItem(0, 0, profit)
-        self.ui.tb_acc2.setItem(0, 1, my_yield)
+            self.ui.tb_acc1.setItem(0, 0, purchase)
+            self.ui.tb_acc1.setItem(0, 1, eval)
+            self.ui.tb_acc2.setItem(0, 0, profit)
+            self.ui.tb_acc2.setItem(0, 1, my_yield)
+        except:
+            pass
 
     def refresh_acc_table2(self, total_call_, total_put_, commission_,  profit_):
-        total_call= QTableWidgetItem(str(total_call_))
-        total_put= QTableWidgetItem(str(total_put_))
-        commission = QTableWidgetItem("-"+str(commission_))
-        d_profit = QTableWidgetItem(str(profit_))
+        """
+        tb_acc3 : 총 매수, 총 매도
+        tb_acc4 : 부가금, 실현 손익
+        """
+        try:
+            total_call= QTableWidgetItem(str(total_call_))
+            total_put= QTableWidgetItem(str(total_put_))
+            commission = QTableWidgetItem("-"+str(commission_))
+            d_profit = QTableWidgetItem(str(profit_))
 
-        items = [total_call, total_put, commission, d_profit]
-        for i in items:
-            i.setTextAlignment(Qt.AlignCenter)
-        if int(profit_) > 0:
-            d_profit.setForeground(QColor("red"))
-        elif int(profit_) < 0:
-            d_profit.setForeground(QColor("blue"))
+            items = [total_call, total_put, commission, d_profit]
+            for i in items:
+                i.setTextAlignment(Qt.AlignCenter)
+            if int(profit_) > 0:
+                d_profit.setForeground(QColor("red"))
+            elif int(profit_) < 0:
+                d_profit.setForeground(QColor("blue"))
 
-        self.ui.tb_acc3.setItem(0, 0, total_call)
-        self.ui.tb_acc3.setItem(0, 1, total_put)
-        self.ui.tb_acc4.setItem(0, 0, commission)
-        self.ui.tb_acc4.setItem(0, 1, d_profit)
+            self.ui.tb_acc3.setItem(0, 0, total_call)
+            self.ui.tb_acc3.setItem(0, 1, total_put)
+            self.ui.tb_acc4.setItem(0, 0, commission)
+            self.ui.tb_acc4.setItem(0, 1, d_profit)
+        except:
+            pass
 
     def refresh_acc_table_detail(self, acc_info_detail):
-        self.ui.tb_acc_detail.setRowCount(len(acc_info_detail))
-        self.ui.tb_acc_detail.setColumnCount(len(acc_info_detail[0]))
+        """ 
+        This function sets stock table.
+        Followings are example datas. 
+        0  :  ['A000660', 'SK하이닉스', 17300, 11.78, 73450.0, 82100, 146900, 164200, 2]
+        1  :  ['A023900', '풍국주정', -2700, -24.66, 10950.0, 8250, 10950, 8250, 1]
+        """
+        try:
+            self.ui.tb_acc_detail.setRowCount(len(acc_info_detail))
+            self.ui.tb_acc_detail.setColumnCount(len(acc_info_detail[0]))
 
-        for i in range(0, len(acc_info_detail)):
-            for j in range(0, len(acc_info_detail[i])):
-                item = QTableWidgetItem(str(acc_info_detail[i][j]))
-                if j == 2 or j == 3:  # 평가손익, 손익률에 대해
-                    if acc_info_detail[i][j] > 0:
-                        item.setForeground(QColor("red"))
-                    else:
-                        item.setForeground(QColor("blue"))
-                elif j == 5 or j == 7:  # 현재가, 평가금액에 대해
-                    if acc_info_detail[i][j] > acc_info_detail[i][j-1]:
-                        item.setForeground(QColor("red"))
-                    else:
-                        item.setForeground(QColor("blue"))
+            for i in range(0, len(acc_info_detail)):
+                for j in range(0, len(acc_info_detail[i])):
+                    item = QTableWidgetItem(str(acc_info_detail[i][j]))
+                    if j == 2 or j == 3:  # 평가손익, 손익률에 대해
+                        if acc_info_detail[i][j] > 0:
+                            item.setForeground(QColor("red"))
+                        else:
+                            item.setForeground(QColor("blue"))
+                    elif j == 5 or j == 7:  # 현재가, 평가금액에 대해
+                        if acc_info_detail[i][j] > acc_info_detail[i][j-1]:
+                            item.setForeground(QColor("red"))
+                        else:
+                            item.setForeground(QColor("blue"))
 
-                item.setTextAlignment(Qt.AlignCenter)  # cell의 중앙 정렬
-                self.ui.tb_acc_detail.setItem(i, j, item)
-        self.resize_acc_table()
-
-
-
+                    item.setTextAlignment(Qt.AlignCenter)  # cell의 중앙 정렬
+                    self.ui.tb_acc_detail.setItem(i, j, item)
+            self.resize_acc_table()
+        except:
+            pass
 
     def resize_acc_table(self):
         self.ui.tb_acc1.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 수정 못하도록 설정.

@@ -14,7 +14,7 @@ def thr_output(output_file, processed_data):
 
 def thr_data_gathering(output_file, real_data, quote_list):
     print("Data_Gathering")
-    with open(output_file, 'wt') as fp:
+    with open(output_file, 'at') as fp:
 
         fp.write("time" + "," + "now" + ",")
         for q in quote_list:
@@ -24,7 +24,7 @@ def thr_data_gathering(output_file, real_data, quote_list):
         fp.write(str(real_data['time']) + "," + str(real_data['now']) + ",")
         for q in quote_list:
             fp.write(str(real_data[q][0]) + ",")  # 주문 잔량
-        fp.write("\n,")
+        fp.write("\n,,")
 
         for q in quote_list:
             fp.write(str(real_data[q][1]) + ",")  # 추가 주문량
