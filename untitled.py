@@ -33,8 +33,8 @@ class Singleton:
 class My_Kiwoom(Singleton):
     callback = None
     def __init__(self):
-        #self.uri = input("Pyro uri : ").strip()
-        #self.transmitter = Pyro4.Proxy(self.uri)
+        self.uri = input("Pyro uri : ").strip()
+        self.transmitter = Pyro4.Proxy(self.uri)
         self.predict = 0
 
         self.kiwoom = QAxWidget("KHOPENAPI.KHOpenAPICtrl.1")
@@ -125,6 +125,7 @@ class My_Kiwoom(Singleton):
         self.kiwoom.dynamicCall('SetRealRemove("All", "All")')
 
     def btn_call(self, quote, vol, method="시장가"):
+        print("BTN_call")
         if self.status_check() == 0 or quote == 0 or vol == 0:
             return
 
@@ -142,6 +143,7 @@ class My_Kiwoom(Singleton):
         elif method == "시장가":
             sHogaGb = "03"
         else:
+            print("btn_call_return")
             return
         sOrgOrderNo = ""  # 원 주문 번호 (취소, 정정 시)
 
@@ -153,6 +155,7 @@ class My_Kiwoom(Singleton):
                                 [sRQName, sScreenNo, sAccNo, nOrderType, sCode, nQty, nPrice, sHogaGb, sOrgOrderNo])
 
     def btn_put(self, quote, vol, method="시장가"):
+        print("BTN_put")
         if self.status_check() == 0 or quote == 0 or vol == 0:
             return
 
@@ -169,6 +172,7 @@ class My_Kiwoom(Singleton):
         elif method == "시장가":
             sHogaGb = "03"
         else:
+            print("btn_put_return")
             return
         sOrgOrderNo = ""  # 원 주문 번호 (취소, 정정 시)
 
@@ -237,7 +241,7 @@ class My_Kiwoom(Singleton):
             return
         self.cur_code = cur_code
         if self.cur_code not in self.purchase_list.keys():
-            self.purchase_list[self.cur_code] = [0, 0]  # 총 매입 가격, 수량
+            self.purchase_list[self.cur_code] = [0, 0, 0]  # 손익 금액, 총 매입 가격, 수량
         self.output_file_name = "{}{}{}".format(datetime.now().strftime("%m.%d "), self.cur_code, " - output.csv")
         self.kiwoom.dynamicCall('SetInputValue(QString, QString)', "종목코드", self.cur_code)
         self.kiwoom.dynamicCall('CommRqData(QString, QString, int, QString)', "기준가_시가", "OPT10001", 0, "0103")
@@ -342,79 +346,82 @@ class My_Kiwoom(Singleton):
         self.quote_list         20개의 호가 정보 리스트. 이 리스트를 참조하여 위의 [호가]에 접근한다.
         """
         """
-        수익률 계산이 잘못되어 purchase_list가 셋팅됐다가 다시 [0,0]으로 초기화됨.
         오른다는 예측이 연달아 나타남.
         
-        수익률 계산이 잘못됨. -> 수익률 계산은 잘못되는데 안파는 문제
-        수익률은 사자마자 75.0으로 나타남. (호가는 78200 즈음이었음)
+        안파는 문제
         """
         while True:
-            if self.real_data['time'] == 0:
-                print("신호 없음.")
+            try:
+                if self.real_data['time'] == 0:
+                    print("신호 없음.")
+                    if self.stop == True:
+                        break
+                    time.sleep(1)
+                    continue
                 if self.stop == True:
                     break
-                time.sleep(1)
-                continue
-            if self.stop == True:
-                break
-            print(self.purchase_list)
-            print("Thread {}".format(datetime.now().strftime("%H:%M:%S")))
-            t = datetime.now().strftime("%S")
+                print(self.purchase_list)
+                print("Thread {}".format(datetime.now().strftime("%H:%M:%S")))
+                t = datetime.now().strftime("%S")
 
-            if int(t) % 10 == 0:  # GUI에 계좌 종목 정보를 주기적으로 업데이트. (검색제한 준수 필요)
-                self.refresh_acc()
+                #if int(t) % 10 == 0:  # GUI에 계좌 종목 정보를 주기적으로 업데이트. (검색제한 준수 필요)
+                #    self.refresh_acc()
 
-            for q in self.quote_list:  # 추가 주문량 계산
-                if self.pre_dict_data["now"] == self.real_data["now"]:  # 현재가 변화 없음
-                    self.real_data[q][1] = self.real_data[q][0] - self.pre_dict_data[q][0]  # 호가 잔량을 제대로 넣어준다.
-                else:  # 현재가 변화
-                    self.real_data[q][1] = 0
-            #TODO binary prediction 일 경우에 대해 처리 ( + , - )
-            processed_data = Preprocessing_to_TF.process(copy.deepcopy(self.real_data), copy.deepcopy(self.quote_list))
-            #self.predict = self.transmitter.wrapper(processed_data[2:])  # np.array 에 대해 argmax한 값. 0, 1, 2
-            print("** predict value : ", self.predict)
+                for q in self.quote_list:  # 추가 주문량 계산
+                    if self.pre_dict_data["now"] == self.real_data["now"]:  # 현재가 변화 없음
+                        self.real_data[q][1] = self.real_data[q][0] - self.pre_dict_data[q][0]  # 호가 잔량을 제대로 넣어준다.
+                    else:  # 현재가 변화
+                        self.real_data[q][1] = 0
+                #TODO binary prediction 일 경우에 대해 처리 ( + , - )
+                processed_data = Preprocessing_to_TF.process(copy.deepcopy(self.real_data), copy.deepcopy(self.quote_list))
+                self.predict = self.transmitter.wrapper(processed_data[2:])  # np.array 에 대해 argmax한 값. 0, 1, 2
+                print("** predict value : ", self.predict)
 
-            # Call trading function. Then should I reinitialize self.predict??
-            if self.predict == 0:  # 주가 유지 예상 TODO 일단 binary Positive만 예측
+                # Call trading function. Then should I reinitialize self.predict??
+                if self.predict == 0:  # 주가 유지 예상 TODO 일단 binary Positive만 예측
+                    pass
+                elif self.predict == 1:  # 주가 상승 예상
+                    # TODO 지정가로 거래가 효율적으로 되는지 확인
+                    quote = self.real_data["now"]
+                    vol = math.floor(self.call_price / self.real_data["now"])
+                    method = "시장가"
+                    self.btn_call(quote=quote, vol=vol, method=method)
+                    self.purchase_list[self.cur_code][1] += (quote * vol)
+                    self.purchase_list[self.cur_code][2] = self.purchase_list[self.cur_code][1] + vol
+                else:
+                    pass
+
+                #한 프로그램에서 여러개를 거래할 떄에는 list 원소들에 대해 thread를 돌려서 현재가vs매입가 비교가 필요.
+                #이 때, 제한 횟수를 안넘도록 주기 조정
+
+                if self.purchase_list[self.cur_code][1] == 0:  # 총 매수 금액이 0일 때
+                    profit = 0
+                else:
+                    profit = (self.purchase_list[self.cur_code][0] / self.purchase_list[self.cur_code][1]) * 100
+                print(self.purchase_list)
+                print(self.cur_code, "현재 수익률 : ", profit)
+                if profit < -1:  # 수익률이 -1%보다 작다면 #TODO interval을 고려해야함 interval이 100인데 1초밖에 안되고 팔면 안되지.
+                    quote = -1
+                    vol = self.purchase_list[self.cur_code][2]
+                    method = "시장가"
+                    self.btn_put(quote=quote, vol=vol, method=method)  # (일단) 다 팔아버린다.
+                    self.purchase_list[self.cur_code][1] = 0
+                    self.purchase_list[self.cur_code][2] -= vol
+                elif profit > 1:  # 수익률이 1%보다 크다면
+                    quote = -1
+                    vol = self.purchase_list[self.cur_code][2]
+                    method = "시장가"
+                    self.btn_put(quote=quote, vol=vol, method=method)  # (일단) 다 팔아버린다.
+                    self.purchase_list[self.cur_code][1] = 0
+                    self.purchase_list[self.cur_code][2] -= vol
+
+                # 데이터들을 비워주는 코드 구현해야함??
+                self.pre_dict_data = copy.deepcopy(self.real_data)
+                time.sleep(1)  # 1초 간격으로 재실행된다.
+            except:
+                #print(e)
                 pass
-            elif self.predict == 1:  # 주가 상승 예상
-                # TODO 지정가로 거래가 효율적으로 되는지 확인
-                quote = self.real_data["now"]
-                vol = math.floor(self.call_price / self.real_data["now"])
-                method = "시장가"
-                self.btn_call(quote=quote, vol=vol, method=method)
-                self.purchase_list[self.cur_code][0] += (quote * vol)
-                self.purchase_list[self.cur_code][1] = self.purchase_list[self.cur_code][1] + vol
-            else:
-                pass
 
-            #한 프로그램에서 여러개를 거래할 떄에는 list 원소들에 대해 thread를 돌려서 현재가vs매입가 비교가 필요.
-            #이 때, 제한 횟수를 안넘도록 주기 조정
-
-            if self.purchase_list[self.cur_code][1] == 0:
-                profit = 0
-            else:
-                profit = (self.real_data["now"] * self.purchase_list[self.cur_code][1] - self.purchase_list[self.cur_code][0]) / self.purchase_list[self.cur_code][1]
-            print(self.purchase_list)
-            print(self.cur_code, "현재 수익률 : ", profit)
-            if profit < -1:  # 수익률이 -1%보다 작다면 #TODO interval을 고려해야함 interval이 100인데 1초밖에 안되고 팔면 안되지.
-                quote = 0
-                vol = self.purchase_list[self.cur_code][1]
-                method = "시장가"
-                self.btn_put(quote=quote, vol=vol, method=method)  # (일단) 다 팔아버린다.
-                self.purchase_list[self.cur_code][0] = 0
-                self.purchase_list[self.cur_code][1] -= vol
-            elif profit > 1:  # 수익률이 1%보다 크다면
-                quote = 0
-                vol = self.purchase_list[self.cur_code][1]
-                method = "시장가"
-                self.btn_put(quote=quote, vol=vol, method=method)  # (일단) 다 팔아버린다.
-                self.purchase_list[self.cur_code][0] = 0
-                self.purchase_list[self.cur_code][1] -= vol
-
-            # 데이터들을 비워주는 코드 구현해야함??
-            self.pre_dict_data = copy.deepcopy(self.real_data)
-            time.sleep(1)  # 1초 간격으로 재실행된다.
 
     def OnEventConnect(self, nErrCode):
         if nErrCode == 0:
@@ -442,18 +449,17 @@ class My_Kiwoom(Singleton):
         print("{} ※Tr Data Event※".format(datetime.now().strftime("%H:%M:%S ")))
 
         if sRQName == "실현손익조회":
-            self.total_call = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "총매수금액").strip()
-            self.total_put = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0,  "총매도금액")  #
-            self.commission = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "매매수수료").strip()
-            self.commission = int(self.commission) + int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "매매세금").strip())
-            self.profit = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "실현손익").strip()  # 이 자체가 실현손익
-            self.tax = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0,"매매세금").strip()
+            try:
+                self.total_call = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "총매수금액").strip())
+                self.total_put = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0,  "총매도금액"))
+                self.commission = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "매매수수료").strip())
+                self.tax = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0,"매매세금").strip())
+                self.commission = self.commission + self.tax
+                self.profit = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "실현손익").strip())  # 이 자체가 실현손익
+                self.callback.refresh_acc_table2(self.total_put, self.total_call, self.commission, self.profit)
 
-            if self.commission == "" or self.tax == "":
-                return
-            self.commission = int(self.commission) + int(self.tax)
-            self.profit = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "실현손익").strip()  # 이 자체가 실현손익
-            self.callback.refresh_acc_table2(int(self.total_put), int(self.total_call), int(self.commission), int(self.profit))
+            except ValueError as e:
+                print("실현손익 데이터 오류 : ", e)
 
         if sRQName == "현재가":
             self.now = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "현재가")
@@ -461,56 +467,64 @@ class My_Kiwoom(Singleton):
         if sRQName == "계좌조회":
             print("TR 계좌조회")
             #멀티데이터
-            num_code = self.kiwoom.dynamicCall('GetRepeatCnt(QString, QString)', sTRCode, sRQName)
-            acc_info_detail = list()
-            손익금액 = 0
-            for cnt in range(num_code):
-                list_ = []
-                code = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "종목코드").strip() #
-                list_.append(code)
-                self.purchase_list[code[1:]] = [0,0]  # 보유 종목 정보를 추가.
-                print(code)
-                t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "종목명").strip() #
-                list_.append(t)
-                t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "손익금액")  #
-                list_.append(int(t))
-                손익금액 += int(t)
-                t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "손익율") # %값으로 출력됨.
-                list_.append(round(float(t), 2))
-                t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "평균단가") # 매입 평균 단가
-                list_.append(round(float(t), 2))
-                t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "현재가") #
-                list_.append(int(t))
-                t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "매입금액") # (평균단가 * 보유 수량)
-                list_.append(int(t))
-                self.purchase_list[code[1:]][0] = int(t)  # 보유 종목 정보에 총 매입 금액 추가.
-                t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "평가금액") # (현재가 * 보유 수량)
-                list_.append(int(t))
-                t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "보유수량") #
-                list_.append(int(t))
-                self.purchase_list[code[1:]][1] = int(t)  # 보유 종목 정보에 보유 수량 추가.
-                acc_info_detail.append(list_)
+            try:
+                num_code = self.kiwoom.dynamicCall('GetRepeatCnt(QString, QString)', sTRCode, sRQName)
+                acc_info_detail = list()
+                손익금액 = 0
 
-            if num_code != 0:
-                self.callback.refresh_acc_table_detail(acc_info_detail)
-            elif num_code == 0:
-                self.callback.ui.tb_acc_detail.setRowCount(0)
+                for cnt in range(num_code):
+                    list_ = []
+                    code = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "종목코드").strip() #
+                    list_.append(code)
+                    self.purchase_list[code[1:]] = [0,0,0]  # 보유 종목 정보를 추가.
+                    t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "종목명").strip() #
+                    list_.append(t)
+                    t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "손익금액")  #
+                    list_.append(int(t))
+                    self.purchase_list[code[1:]][0] = int(t)  # 보유 종목 정보에 손익 금액 추가.
+                    손익금액 += int(t)
+                    t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "손익율") # %값으로 출력됨.
+                    list_.append(round(float(t), 2))
+                    t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "평균단가") # 매입 평균 단가
+                    list_.append(round(float(t), 2))
+                    t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "현재가") #
+                    list_.append(int(t))
+                    t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "매입금액") # (평균단가 * 보유 수량)
+                    list_.append(int(t))
+                    self.purchase_list[code[1:]][1] = int(t)  # 보유 종목 정보에 총 매입 금액 추가.
+                    t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "평가금액") # (현재가 * 보유 수량)
+                    list_.append(int(t))
+                    t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "보유수량") #
+                    list_.append(int(t))
+                    self.purchase_list[code[1:]][2] = int(t)  # 보유 종목 정보에 보유 수량 추가.
+
+                    acc_info_detail.append(list_)
+
+                if len(acc_info_detail) != 0:
+                    self.callback.refresh_acc_table_detail(acc_info_detail)
+                elif len(acc_info_detail) == 0:
+                    self.callback.ui.tb_acc_detail.setRowCount(0)
+            except ValueError as e:
+                print("계좌 조회 데이터 오류 : ", e)
 
             #싱글데이터
-            acc_info = list()
-            t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "총매입금액")  # 총 매입
-            acc_info.append(int(t))
-            t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "유가잔고평가액")  # 총 평가
-            acc_info.append(int(t))
-            acc_info.append(손익금액)  # 멀티 데이터에서 계산한 손익금액
-            if float(acc_info[0] == 0.0):  # 매입이 0일 때
-                현재수익률 = 0
-            else:
-                현재수익률 = str(round(float(손익금액) / float(acc_info[0]), 4) * 100)
-            acc_info.append(현재수익률)
-            acc_info = list(map(str, acc_info))
+            try:
+                acc_info = list()
+                t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "총매입금액")  # 총 매입
+                acc_info.append(int(t))
+                t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "유가잔고평가액")  # 총 평가
+                acc_info.append(int(t))
+                acc_info.append(손익금액)  # 멀티 데이터에서 계산한 손익금액
+                if float(acc_info[0] == 0.0):  # 매입이 0일 때
+                    현재수익률 = 0
+                else:
+                    현재수익률 = str(round(float(손익금액) / float(acc_info[0]), 2) * 100)
+                acc_info.append(현재수익률)
+                acc_info = list(map(str, acc_info))
 
-            self.callback.refresh_acc_table(acc_info)
+                self.callback.refresh_acc_table(acc_info)
+            except ValueError as e:
+                print("계좌 실글 데이터 오류 : ", e)
             print(self.purchase_list)
 
 
