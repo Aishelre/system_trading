@@ -375,13 +375,13 @@
     <property name="geometry">
      <rect>
       <x>190</x>
-      <y>280</y>
+      <y>240</y>
       <width>101</width>
       <height>41</height>
      </rect>
     </property>
     <property name="text">
-     <string>      수신 종료      </string>
+     <string>정지</string>
     </property>
    </widget>
    <widget class="QPushButton" name="btn_real_data">
@@ -394,7 +394,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>실시간 호가 정보</string>
+     <string>시스템 트레이딩</string>
     </property>
    </widget>
    <widget class="QPushButton" name="btn_basic_data">
@@ -654,7 +654,7 @@
     <property name="geometry">
      <rect>
       <x>190</x>
-      <y>240</y>
+      <y>330</y>
       <width>139</width>
       <height>16</height>
      </rect>
@@ -667,7 +667,7 @@
     <property name="geometry">
      <rect>
       <x>190</x>
-      <y>260</y>
+      <y>350</y>
       <width>139</width>
       <height>16</height>
      </rect>
