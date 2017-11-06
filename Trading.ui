@@ -384,7 +384,7 @@
      <string>정지</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="btn_real_data">
+   <widget class="QPushButton" name="btn_trading">
     <property name="geometry">
      <rect>
       <x>190</x>
