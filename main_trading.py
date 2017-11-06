@@ -20,7 +20,7 @@ class My_window(QMainWindow):
 
         self.ui.btn_log_in.clicked.connect(lambda : kiwoom.btn_login())
         self.ui.btn_basic_data.clicked.connect(lambda : kiwoom.btn_search_basic())
-        self.ui.btn_real_data.clicked.connect(lambda: kiwoom.btn_real_start())
+        self.ui.btn_trading.clicked.connect(lambda: kiwoom.btn_trading_start())
         self.ui.btn_stop.clicked.connect(lambda : kiwoom.btn_real_stop())
         self.ui.btn_stop.setEnabled(False)
         self.ui.btn_ref_acc.clicked.connect(lambda : kiwoom.refresh_acc())
@@ -63,7 +63,7 @@ class My_window(QMainWindow):
             print(now)
             if now >= 9:
                 print("9시 경과. 시작")
-                self.ui.btn_real_data.click()  # 직접 kiwoom.btn () 을 호출하면 프로그램이 멈춘다.
+                self.ui.btn_trading.click()  # 직접 kiwoom.btn () 을 호출하면 프로그램이 멈춘다.
                 break
             else:
                 print("9시 이전")

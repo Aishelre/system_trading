@@ -1,48 +1,64 @@
 from datetime import datetime
 import logging
 import logging.handlers
+import os
 
-#TODO 근데 trading.py에서 gui에 log출력할 때
-#TODO 여러 줄에서 하지 말고 "~~\n ~~\n~~"이렇게 하면 안되나?
 
-#TODO 각 로그에 따라 각각 디렉터리의 여러 파일에 기록한다.
+def init_logger():
+    formatter = logging.Formatter("%(asctime)s : %(message)s")
+    date = datetime.now().strftime("%Y.%m.%d")
+    names = ["order", "info", "account", "trading"]
+    for name in names:
+        logger = logging.getLogger(name)
+        handler = logging.FileHandler("./Log/"+date+" - "+name+".log")
+        handler.setFormatter(formatter)
+        logger.setLevel(logging.DEBUG)
+        logger.addHandler(handler)
 
-date = datetime.now().strftime("%Y.%m.%d")
-logger = logging.getLogger("crumbs")
-logger.setLevel(logging.DEBUG)
-filehandler = logging.FileHandler("./Log/" + date + " - order.log")
-logger.addHandler(filehandler)
+def setup_logger(name):
+    logger = logging.getLogger(name)
+    return logger
 
-def log_order():
+def log_order(msg):
     # btn눌렀을 떄
     # 거래 완료 되었을 때
-    #logging.basicConfig(filename="./Log/" + date + " - order.log", level=logging.DEBUG)
+    logger = setup_logger("order")
+    logger.info(msg)
 
-    logger.info("order")
-    pass
+def log_acc(msg):
+    logger = setup_logger("account")
+    logger.info(msg)
 
-def log_acc():
-    #logging.basicConfig(filename="./Log/" + date + " - account.log")
-    filehandler = logging.FileHandler("./Log/" + date + " - acc.log")
-    logger.info("acc")
-    pass
-
-def log_info():
+def log_info(msg):
     # 로그인, set_code,
-    #logging.basicConfig(filename="./Log/" + date + " - info.log")
-    logger.info("general")
-    pass
+    logger = setup_logger("info")
+    logger.info(msg)
 
-def log_trading(sign=0):
+def log_trading(msg, sign=0):
     # sign == "start"
     # sign == "stop"
     # TF_signal
-    #logging.basicConfig(filename="./Log/" + date + " - trading.log")
-    logger.info("trading")
-    pass
+    logger = setup_logger("trading")
+    logger.info(msg+str(sign))
 
-log_order()
-log_acc()
-log_info()
-log_trading()
+
+
+if not os.path.exists("./Log"):  # Log directory가 없으면 생성한다.
+    os.makedirs("./Log")
+
+init_logger()
+
+if __name__ == "__main__":
+    log_order("asd")
+    log_acc("awe")
+    log_info("azz")
+    log_trading("n")
+    log_order("asd22")
+    log_acc("awe22")
+    log_info("azz22")
+    log_trading("n22")
+    log_order("asd2233")
+    log_acc("awe2233")
+    log_info("azz2233")
+    log_trading("n2233")
 
