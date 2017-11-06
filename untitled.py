@@ -98,9 +98,12 @@ class My_Kiwoom(Singleton):
         if self.cur_code == "":
             self.callback.show_log("Select Code")
             return
-        self.real_thread = threading.Thread(target=self.data_processing_thread, args=())
-        self.real_thread.daemon = True
-        self.real_thread.start()
+        self.thr_trading = threading.Thread(target=self.thread_trading, args=())
+        self.thr_trading.daemon = True
+        self.thr_trading.start()
+        self.thr_acc = threading.Thread(target = self.thread_refresh_acc, args=())
+        self.thr_acc.daemon = True
+        self.thr_acc.start()
         self.stop = False
 
         self.callback.ui.btn_real_data.setEnabled(False)
@@ -335,20 +338,39 @@ class My_Kiwoom(Singleton):
             self.pre_dict_data = copy.deepcopy(self.real_data)
             return
 
+    def thread_refresh_acc(self):
+        while True:
+            if self.stop == True:
+                break
 
-    def data_processing_thread(self):
+            #TODO refresh_acc를 하면 튕긴다. 튕기는 시간은 임의, 주문과 무관.
+            t = datetime.now().strftime("%S")
+            print(t, type(t))
+            if int(t) % 10 == 0:  # 10초마다
+                print("10초")
+                self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "계좌번호", self.cur_account)
+                self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "비밀번호", "0000")
+                self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "상장폐지조회구분", "0")
+                self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "비밀번호입력매체구분", "00")
+                self.kiwoom.dynamicCall("CommRqData(QString, QString, QString, QString)", "계좌조회", "OPW00004", "0", "0001")
+
+                #self.refresh_acc()
+                # TODO thread_trading 없이 이 쓰레드만 실행할 때, 9~10초에 계좌 조회를 여러번 누르면 꺼짐.
+                # TODO 데이터를 한 번에 여러개 요청해서 데이터가 안들어오는 문제 발생?
+            time.sleep(1)
+
+
+    def thread_trading(self):
         """
         btn_real_start를 누르면
         주문이 안들어와도 계속 실행된다.
         btn_real_stop을 누르면 종료.
-        
-        self.output_file_name
-        self.quote_list         20개의 호가 정보 리스트. 이 리스트를 참조하여 위의 [호가]에 접근한다.
         """
+
         """
         오른다는 예측이 연달아 나타남.
         
-        안파는 문제
+        안파는 문제?? 해결 안됐나?
         """
         while True:
             try:
@@ -362,11 +384,8 @@ class My_Kiwoom(Singleton):
                     break
                 print(self.purchase_list)
                 print("Thread {}".format(datetime.now().strftime("%H:%M:%S")))
-                t = datetime.now().strftime("%S")
-
-                #if int(t) % 10 == 0:  # GUI에 계좌 종목 정보를 주기적으로 업데이트. (검색제한 준수 필요)
-                #    self.refresh_acc()
-
+                if int(datetime.now().strftime("%S")) == 9:
+                    time.sleep(2)
                 for q in self.quote_list:  # 추가 주문량 계산
                     if self.pre_dict_data["now"] == self.real_data["now"]:  # 현재가 변화 없음
                         self.real_data[q][1] = self.real_data[q][0] - self.pre_dict_data[q][0]  # 호가 잔량을 제대로 넣어준다.
@@ -449,17 +468,21 @@ class My_Kiwoom(Singleton):
         print("{} ※Tr Data Event※".format(datetime.now().strftime("%H:%M:%S ")))
 
         if sRQName == "실현손익조회":
-            try:
-                self.total_call = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "총매수금액").strip())
-                self.total_put = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0,  "총매도금액"))
-                self.commission = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "매매수수료").strip())
-                self.tax = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0,"매매세금").strip())
-                self.commission = self.commission + self.tax
-                self.profit = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "실현손익").strip())  # 이 자체가 실현손익
-                self.callback.refresh_acc_table2(self.total_put, self.total_call, self.commission, self.profit)
+            print("TR 실현 손익 조회")
+            self.total_call = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "총매수금액").strip())
+            self.total_put = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0,  "총매도금액"))
+            self.commission = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "매매수수료").strip())
+            self.tax = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0,"매매세금").strip())
+            self.profit = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "실현손익").strip())  # 이 자체가 실현손익
 
-            except ValueError as e:
-                print("실현손익 데이터 오류 : ", e)
+            #except ValueError as e:
+            if self.total_call =="" or self.total_put =="" or self.commission =="" or self.tax =="" or self.profit=="":
+                print("실현손익 데이터 오류 : ")
+                return
+            self.commission = self.commission + self.tax
+            print("acc_table2()")
+            self.callback.refresh_acc_table2(self.total_put, self.total_call, self.commission, self.profit)
+
 
         if sRQName == "현재가":
             self.now = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "현재가")
@@ -469,11 +492,11 @@ class My_Kiwoom(Singleton):
             #멀티데이터
             try:
                 num_code = self.kiwoom.dynamicCall('GetRepeatCnt(QString, QString)', sTRCode, sRQName)
-                acc_info_detail = list()
+                acc_info_detail = list()  # 여러 개의 종목 정보를 저장
                 손익금액 = 0
 
                 for cnt in range(num_code):
-                    list_ = []
+                    list_ = []  # 한 개의 종목 정보를 저장
                     code = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "종목코드").strip() #
                     list_.append(code)
                     self.purchase_list[code[1:]] = [0,0,0]  # 보유 종목 정보를 추가.
@@ -501,6 +524,11 @@ class My_Kiwoom(Singleton):
                     acc_info_detail.append(list_)
 
                 if len(acc_info_detail) != 0:
+                    for acc in acc_info_detail:
+                        if "" in acc:
+                            print("계좌 조회 데이터 오류.")
+                            return
+                    print("acc_table_detail")
                     self.callback.refresh_acc_table_detail(acc_info_detail)
                 elif len(acc_info_detail) == 0:
                     self.callback.ui.tb_acc_detail.setRowCount(0)
@@ -521,7 +549,10 @@ class My_Kiwoom(Singleton):
                     현재수익률 = str(round(float(손익금액) / float(acc_info[0]), 2) * 100)
                 acc_info.append(현재수익률)
                 acc_info = list(map(str, acc_info))
-
+                if "" in acc_info:
+                    print("계좌 싱글 데이터 오류.")
+                    return
+                print("acc_table(acc_info)")
                 self.callback.refresh_acc_table(acc_info)
             except ValueError as e:
                 print("계좌 실글 데이터 오류 : ", e)
