@@ -5,14 +5,15 @@ from datetime import datetime
 from PyQt5 import uic
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import *
-from PyQt5.QAxContainer import *
 from PyQt5.QtWidgets import *
-import Kiwoom_stock
 import threading
+import Kiwoom_stock
 
-class My_window(QMainWindow):
+class My_window(QMainWindow, QApplication):
     def __init__(self):
         super().__init__()
+        sys.excepthook = self.excepthook
+
         self.ui = uic.loadUi('Trading.ui', self)
         self.setWindowTitle("Stock")
 
@@ -63,7 +64,7 @@ class My_window(QMainWindow):
             print(now)
             if now >= 9:
                 print("9시 경과. 시작")
-                self.ui.btn_trading.click()  # 직접 kiwoom.btn () 을 호출하면 프로그램이 멈춘다.
+                self.ui.btn_trading.clicked()  # 직접 kiwoom.btn () 을 호출하면 프로그램이 멈춘다.
                 break
             else:
                 print("9시 이전")
@@ -80,6 +81,9 @@ class My_window(QMainWindow):
                 print("15시 이전")
                 time.sleep(600)  # 10분
         self.ui.btn_auto.setEnabled(True)
+
+    def excepthook(self, type, value, traceback):
+        print("Unhandled Error : ", type, value, traceback)
 
     def refresh_acc_table(self, acc_info):
         """
@@ -108,23 +112,23 @@ class My_window(QMainWindow):
         except:
             pass
 
-    def refresh_acc_table2(self, total_call_, total_put_, commission_,  profit_):
+    def refresh_acc_table2(self, acc_info):
         """
         tb_acc3 : 총 매수, 총 매도
         tb_acc4 : 부가금, 실현 손익
         """
         try:
-            total_call= QTableWidgetItem(str(total_call_))
-            total_put= QTableWidgetItem(str(total_put_))
-            commission = QTableWidgetItem("-"+str(commission_))
-            d_profit = QTableWidgetItem(str(profit_))
+            total_call= QTableWidgetItem(str(acc_info[0]))
+            total_put= QTableWidgetItem(str(acc_info[1]))
+            commission = QTableWidgetItem("-"+str(acc_info[2]))
+            d_profit = QTableWidgetItem(str(acc_info[3]))
 
             items = [total_call, total_put, commission, d_profit]
             for i in items:
                 i.setTextAlignment(Qt.AlignCenter)
-            if int(profit_) > 0:
+            if int(acc_info[3]) > 0:
                 d_profit.setForeground(QColor("red"))
-            elif int(profit_) < 0:
+            elif int(acc_info[3]) < 0:
                 d_profit.setForeground(QColor("blue"))
 
             self.ui.tb_acc3.setItem(0, 0, total_call)
@@ -235,6 +239,7 @@ class My_window(QMainWindow):
         else:
             self.statusBar().showMessage("Not Connected")
 
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     myWindow = My_window()
@@ -243,3 +248,4 @@ if __name__ == "__main__":
     kiwoom.set_callback(myWindow)
     myWindow.show()
     app.exec_()
+
