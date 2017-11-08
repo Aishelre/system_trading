@@ -64,7 +64,7 @@ class My_window(QMainWindow, QApplication):
             print(now)
             if now >= 9:
                 print("9시 경과. 시작")
-                self.ui.btn_trading.clicked()  # 직접 kiwoom.btn () 을 호출하면 프로그램이 멈춘다.
+                self.ui.btn_trading.click()  # 직접 kiwoom.btn () 을 호출하면 프로그램이 멈춘다.
                 break
             else:
                 print("9시 이전")
