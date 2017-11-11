@@ -50,7 +50,7 @@ class My_window(QMainWindow, QApplication):
         thr.start()
 
     def time_check(self):
-        if kiwoom.get_cur_code() == "":
+        if kiwoom.cur_code() == "":
             self.ui.btn_auto.setEnabled(True)
             self.show_log("[FAILED] Auto start failed. - select CODE", t=False)
             return

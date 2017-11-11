@@ -22,6 +22,7 @@ import sys
 # TODO - 조회데이터를 못가져오거나 엉뚱한 메모리 참조로 인해 프로그램이 비정상처리될수 있음.
 # TODO - OnReceiveTRData()이벤트 함수가 리턴되면 수신데이터를 삭제한다.
 
+
 class Singleton:
     __instance = None
 
@@ -50,7 +51,7 @@ class My_Kiwoom(Singleton):
         self.kiwoom.OnReceiveChejanData.connect(self.OnReceiveChejanData)
         self.kiwoom.OnReceiveMsg.connect(self.OnReceiveMsg)
 
-        self.today = datetime.now().strftime("%Y%m%d")
+        self.today = datetime.now().strftime("%Y%m%d")  # 실현 손익 조회에 사용됨
 
         self.cur_account = str()
         self.cur_code = str()
@@ -60,9 +61,9 @@ class My_Kiwoom(Singleton):
         self.market = str()  # 코스피 or 코스닥
 
         self.now = 0
-        self.std_price = 0
-        self.opening_price = 0
-        self.quotes = []
+        self.std_price = 0  # 기준가
+        self.opening_price = 0  # 시가
+        self.quotes = []  # 모든 가능한 호가들을 GUI에 넘겨준다.
 
         self.quote_list = []
         self.pre_dict_data = collections.OrderedDict()
@@ -72,8 +73,7 @@ class My_Kiwoom(Singleton):
 
         self.call_price = 200000
         self.purchase_list = dict()
-
-        self.order_cnt=0
+        self.order_cnt = 0  # order 화면 번호의 중복을 방지. 필요한지는 의문임.
 
         sys.excepthook = self.excepthook
         self.btn_login()
@@ -85,9 +85,6 @@ class My_Kiwoom(Singleton):
     def set_callback(self, the_callback):
         self.callback = the_callback
 
-    def get_cur_code(self):
-        return self.cur_code
-
     def reset_datas(self):
         self.pre_dict_data = collections.OrderedDict()
         self.quotes.clear()
@@ -97,7 +94,6 @@ class My_Kiwoom(Singleton):
         self.kiwoom.dynamicCall("CommConnect()")
 
     def btn_search_basic(self):
-        print(self.total_call)
         if self.status_check() == 0:
             return
         if self.cur_code == "":
@@ -129,9 +125,10 @@ class My_Kiwoom(Singleton):
         self.callback.ui.btn_stop.setEnabled(True)
 
         self.callback.show_log("※ 실시간 데이터 수신 시작")
-        #self.kiwoom.dynamicCall('SetInputValue(QString, QString)', "종목코드", self.cur_code)
+        self.kiwoom.dynamicCall('SetInputValue(QString, QString)', "종목코드", self.cur_code)
         self.kiwoom.dynamicCall('SetRealReg(QString, QString, QString, QString)', "0102", self.cur_code, "", "0")
-        #self.kiwoom.dynamicCall('CommRqData(QString, QString, int, QString)', "주식호가요청", "OPT10004", 0, "0102")
+        self.kiwoom.dynamicCall('CommRqData(QString, QString, int, QString)', "주식호가요청", "OPT10004", 0, "0102")
+        # 이유는 모르겠으나 주식호가요청tr을 해야 실시간 이벤트가 들어옴
 
     def btn_real_stop(self):
         self.stop = True  # thread를 종료시키는 역할
@@ -174,6 +171,7 @@ class My_Kiwoom(Singleton):
         print(quote, vol)
         print(sAccNo, sCode, nQty, nPrice)
 
+        log.log_order("<<매수>> ["+str(nPrice)+"] 원 ["+str(nQty)+"] 주 -   "+str(sCode)+"    "+str(sAccNo))
         self.callback.show_log("매수 주문 전송")
         self.kiwoom.dynamicCall('SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)',
                                 [sRQName, sScreenNo, sAccNo, nOrderType, sCode, nQty, nPrice, sHogaGb, sOrgOrderNo])
@@ -204,29 +202,24 @@ class My_Kiwoom(Singleton):
         print(quote, vol)
         print(sAccNo, sCode, nQty, nPrice)
 
+        log.log_order("<매도> ["+str(nPrice)+"] 원 ["+str(nQty)+"] 주 -   "+str(sCode)+"    "+str(sAccNo))
         self.callback.show_log("매도 주문 전송")
         self.kiwoom.dynamicCall('SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)',
                                 [sRQName, sScreenNo, sAccNo, nOrderType, sCode, nQty, nPrice, sHogaGb, sOrgOrderNo])
 
     def refresh_acc(self):
-        log.log_acc("Refresh account")
-        a1=self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "계좌번호", self.cur_account)
-        a2=self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "비밀번호", "0000")
-        a3=self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "상장폐지조회구분", "0")
-        a4=self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "비밀번호입력매체구분", "00")
-        a5=self.kiwoom.dynamicCall("CommRqData(QString, QString, QString, QString)", "계좌조회", "OPW00004", "0", "0001")
-        #l = list(map(str, [a1,a2,a3,a4,a5]))
-        #l = "==".join(l)
-        #print(l)
+        log.log_acc("Refresh account============================================================")
+        self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "계좌번호", self.cur_account)
+        self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "비밀번호", "0000")
+        self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "상장폐지조회구분", "0")
+        self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "비밀번호입력매체구분", "00")
+        self.kiwoom.dynamicCall("CommRqData(QString, QString, QString, QString)", "계좌조회", "OPW00004", "0", "0001")
         # TODO 실현손익 조회에서 문제 발생
-        b1=self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "계좌번호", self.cur_account)
-        b2=self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "비밀번호", "0000")
-        b3=self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "시작일자", self.today)
-        b4=self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "종료일자", self.today)
-        b5=self.kiwoom.dynamicCall("CommRqData(QString, QString, QString, QString)", "실현손익조회", "OPT10074", "0", "0002")
-        #l2 = list(map(str, [b1,b2,b3,b4,b5]))
-        #l2="--".join(l2)
-        #print(l2)
+        self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "계좌번호", self.cur_account)
+        self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "비밀번호", "0000")
+        self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "시작일자", self.today)
+        self.kiwoom.dynamicCall("SetInputValue(QString, Qstring)", "종료일자", self.today)
+        self.kiwoom.dynamicCall("CommRqData(QString, QString, QString, QString)", "실현손익조회", "OPT10074", "0", "0002")
 
     def status_check(self):
         if self.kiwoom.dynamicCall('GetConnectState()') == 0:
@@ -376,8 +369,7 @@ class My_Kiwoom(Singleton):
 
             #TODO refresh_acc를 하면 튕긴다. 튕기는 시간은 임의, 주문과 무관.
             t = datetime.now().strftime("%S")
-            print(t, type(t))
-            if int(t) % 5 == 0:  # 10초마다
+            if int(t) % 10 == 0:  # 10초마다
                 print("10초")
                 #self.refresh_acc()
                 self.callback.ui.btn_ref_acc.click()
@@ -411,18 +403,18 @@ class My_Kiwoom(Singleton):
                     print("Stoped 1")
                     break
                 print("Thread {}".format(datetime.now().strftime("%H:%M:%S")))
-                if int(datetime.now().strftime("%S")) == 9:
-                    time.sleep(2)
                 for q in self.quote_list:  # 추가 주문량 계산
                     if self.pre_dict_data["now"] == self.real_data["now"]:  # 현재가 변화 없음
                         self.real_data[q][1] = self.real_data[q][0] - self.pre_dict_data[q][0]  # 호가 잔량을 제대로 넣어준다.
                     else:  # 현재가 변화
                         self.real_data[q][1] = 0
-                #TODO binary prediction 일 경우에 대해 처리 ( + , - )
+                #TODO binary prediction 일 경우에 대해 처리 해야함 ( +, 0 ), ( 0 , - )
                 processed_data = Preprocessing_to_TF.process(copy.deepcopy(self.real_data), copy.deepcopy(self.quote_list))
                 self.predict = self.transmitter.wrapper(processed_data[2:])  # np.array 에 대해 argmax한 값. 0, 1, 2
-                print("** predict value : ", self.predict)
-                log.log_trading("predict value : "+str(self.predict))
+
+                if self.predict != 0:
+                    print("** predict value : ", self.predict)
+                    log.log_trading("predict value : "+str(self.predict)+"-----")
                 # Call trading function. Then should I reinitialize self.predict??
                 if self.predict == 0:  # 주가 유지 예상 TODO 일단 binary Positive만 예측
                     pass
@@ -503,7 +495,6 @@ class My_Kiwoom(Singleton):
             try:
                 print("TR 실현 손익 조회")
                 self.total_call = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "총매수금액").strip())  # str type
-                print(type(self.total_call), self.total_call)
                 self.total_put = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0,  "총매도금액").strip())
                 self.commission = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0, "매매수수료").strip())
                 self.tax = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, 0,"매매세금").strip())
@@ -537,7 +528,6 @@ class My_Kiwoom(Singleton):
                     list_ = []  # 한 개의 종목 정보를 저장
                     code = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "종목코드").strip() #
                     list_.append(code)
-                    print(code)
                     self.purchase_list[code[1:]] = [0,0,0]  # 보유 종목 정보를 추가.
                     t = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", sTRCode, sRQName, cnt, "종목명").strip() #
                     list_.append(t)
@@ -562,10 +552,8 @@ class My_Kiwoom(Singleton):
 
                     acc_info_detail.append(list_)
                     log.log_acc(",".join(list(map(str, list_))))
-                    print("1")
 
                 if len(acc_info_detail) != 0:
-
                     for acc in acc_info_detail:
                         if "" in acc:
                             print("계좌 조회 데이터 오류.")
@@ -580,7 +568,6 @@ class My_Kiwoom(Singleton):
             except Exception as e:
                 print("계좌 조회 데이터 오류 : ", e)
                 log.log_acc("계좌 조회 실패 (데이터 조회)")
-            print("5")
 
             #싱글데이터
             try:
@@ -607,8 +594,6 @@ class My_Kiwoom(Singleton):
             except :
                 print("계좌 실글 데이터 오류")
                 log.log_acc("계좌 조회 실패 (데이터 조회)")
-            print(self.purchase_list)
-            print("10")
 
         if sRQName == "매수":
             print("TR - 매수")
