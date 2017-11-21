@@ -3,25 +3,14 @@
 from datetime import datetime
 import math
 import collections
-from PyQt5.QtCore import *
 from PyQt5.QAxContainer import *
-from PyQt5.QtWidgets import *
-import Output_data
 import time
 import threading
 import copy
 import Data_Processing.Preprocessing_to_TF as Preprocessing_to_TF
 import Pyro4
-import numpy as np
 import log
 import sys
-
-#TODO 상한가에 대한 경우도 생각해야함.
-
-# TODO - 이벤트 호출이 리턴되면 할당했던 메모리를 삭제하기 때문에
-# TODO - 조회데이터를 못가져오거나 엉뚱한 메모리 참조로 인해 프로그램이 비정상처리될수 있음.
-# TODO - OnReceiveTRData()이벤트 함수가 리턴되면 수신데이터를 삭제한다.
-
 
 class Singleton:
     __instance = None
@@ -71,7 +60,7 @@ class My_Kiwoom(Singleton):
 
         self.stop = True
 
-        self.call_price = 200000
+        self.call_price = 200000  # thread에서 매수하는 기본 단위
         self.purchase_list = dict()
         self.order_cnt = 0  # order 화면 번호의 중복을 방지. 필요한지는 의문임.
 
@@ -366,17 +355,11 @@ class My_Kiwoom(Singleton):
         while True:
             if self.stop == True:
                 break
-
-            #TODO refresh_acc를 하면 튕긴다. 튕기는 시간은 임의, 주문과 무관.
             t = datetime.now().strftime("%S")
-            if int(t) % 10 == 0:  # 10초마다
-                print("10초")
-                #self.refresh_acc()
-                self.callback.ui.btn_ref_acc.click()
-                # TODO thread_trading 없이 이 쓰레드만 실행할 때, 9~10초에 계좌 조회를 여러번 누르면 꺼짐.
-                # TODO 데이터를 한 번에 여러개 요청해서 데이터가 안들어오는 문제 발생?
+            if int(t) % 5 == 0:  # 5초마다 계좌 조회
+                print("5초")
+                self.callback.ui.btn_ref_acc.click()  # refresh_acc를 직접 호출하면 꺼지기도 한다.
             time.sleep(1)
-
 
     def thread_trading(self):
         """
@@ -387,8 +370,6 @@ class My_Kiwoom(Singleton):
 
         """
         오른다는 예측이 연달아 나타남.
-        
-        안파는 문제?? 해결 안됐나?
         """
         while True:
             try:
@@ -408,13 +389,13 @@ class My_Kiwoom(Singleton):
                         self.real_data[q][1] = self.real_data[q][0] - self.pre_dict_data[q][0]  # 호가 잔량을 제대로 넣어준다.
                     else:  # 현재가 변화
                         self.real_data[q][1] = 0
-                #TODO binary prediction 일 경우에 대해 처리 해야함 ( +, 0 ), ( 0 , - )
+
                 processed_data = Preprocessing_to_TF.process(copy.deepcopy(self.real_data), copy.deepcopy(self.quote_list))
                 self.predict = self.transmitter.wrapper(processed_data[2:])  # np.array 에 대해 argmax한 값. 0, 1, 2
 
                 if self.predict != 0:
                     print("** predict value : ", self.predict)
-                    log.log_trading("predict value : "+str(self.predict)+"-----")
+                    log.log_trading("predict value : "+str(self.predict))
                 # Call trading function. Then should I reinitialize self.predict??
                 if self.predict == 0:  # 주가 유지 예상 TODO 일단 binary Positive만 예측
                     pass
@@ -438,14 +419,14 @@ class My_Kiwoom(Singleton):
                     profit = (self.purchase_list[self.cur_code][0] / self.purchase_list[self.cur_code][1]) * 100
                 #print(self.purchase_list)
                 #print(self.cur_code, "현재 수익률 : ", profit)
-                if profit < -1:  # 수익률이 -1%보다 작다면 #TODO interval을 고려해야함 interval이 100인데 1초밖에 안되고 팔면 안됨
+                if profit < -3:  # 수익률 #TODO interval을 고려해야함 interval이 100인데 1초밖에 안되고 팔면 안됨
                     quote = -1
                     vol = self.purchase_list[self.cur_code][2]
                     method = "시장가"
                     self.btn_put(quote=quote, vol=vol, method=method)  # (일단) 다 팔아버린다.
                     self.purchase_list[self.cur_code][1] = 0
                     self.purchase_list[self.cur_code][2] -= vol
-                elif profit > 1:  # 수익률이 1%보다 크다면
+                elif profit > 3:  # 수익률
                     quote = -1
                     vol = self.purchase_list[self.cur_code][2]
                     method = "시장가"
@@ -453,14 +434,12 @@ class My_Kiwoom(Singleton):
                     self.purchase_list[self.cur_code][1] = 0
                     self.purchase_list[self.cur_code][2] -= vol
 
-                # 데이터들을 비워주는 코드 구현해야함??
                 self.pre_dict_data = copy.deepcopy(self.real_data)
                 time.sleep(1)  # 1초 간격으로 재실행된다.
-            except:
-                #print(e)
-                pass
-        print("Thread-trading Stop")
+            except Exception as e:
+                print(e)
 
+        print("Thread-trading Stop")
 
     def OnEventConnect(self, nErrCode):
         if nErrCode == 0:
@@ -690,7 +669,7 @@ class My_Kiwoom(Singleton):
                 self.callback.show_order_log(n + " [" + p + "]원 [" + v + "]주 " + signal, pre="[접수] ", t=False, color=color)
             elif self.kiwoom.dynamicCall("GetChejanData(int)", 913) == '체결':
                 self.show_order_log(signal, c, n, p, v)
-                self.refresh_acc()
+                #self.refresh_acc()
 
             L = [9203,9205,9001,912,913,302,900,901,902,903,904,905,906,907,908,909,910,911,10,27,28,914,915,938,939,919,920,921,922,923]
             #for i in L:

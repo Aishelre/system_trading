@@ -34,12 +34,12 @@ def log_info(msg):
     logger = setup_logger("info")
     logger.info(msg)
 
-def log_trading(msg, sign=0):
+def log_trading(msg):
     # sign == "start"
     # sign == "stop"
     # TF_signal
     logger = setup_logger("trading")
-    logger.info(msg+str(sign))
+    logger.info(msg)
 
 
 
@@ -49,16 +49,5 @@ if not os.path.exists("./Log"):  # Log directory가 없으면 생성한다.
 init_logger()
 
 if __name__ == "__main__":
-    log_order("asd")
-    log_acc("awe")
-    log_info("azz")
-    log_trading("n")
-    log_order("asd22")
-    log_acc("awe22")
-    log_info("azz22")
-    log_trading("n22")
-    log_order("asd2233")
-    log_acc("awe2233")
-    log_info("azz2233")
-    log_trading("n2233")
+    pass
 
