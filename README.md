@@ -34,5 +34,7 @@
 ![trained](https://user-images.githubusercontent.com/24665474/33057014-fd36b0b0-cecb-11e7-9630-f4a4bf690a7f.png)
 ### prediction using Untrained data
 ![not trained](https://user-images.githubusercontent.com/24665474/33057025-06766832-cecc-11e7-87c2-f5c2abb26f29.png)
+### prediction (code : 000660)
+![000660](https://user-images.githubusercontent.com/24665474/33062137-93880f4a-cee1-11e7-8ad2-10308b9f3a4f.png)
 
 
