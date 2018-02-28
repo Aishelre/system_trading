@@ -1,4 +1,3 @@
-# in progress
 
 # system_trading
 
